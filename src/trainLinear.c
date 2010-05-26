@@ -20,8 +20,6 @@ int flag_cross_validation;
 int nr_fold;
 double bias;
 	
-//void R_init_Rinterface(DllInfo *info) {}
-//void R_unload_Rinterface(DllInfo *info) {}
 void do_cross_validation(void);
 void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
 
@@ -36,7 +34,6 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 	
 	const char *error_msg;
 	int i, j, k, max_index;
-	double ind;
 	i=j=k=0;
 	bias = -1;
 	
@@ -129,26 +126,6 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 	}
 	// SETUP CHECK
 	error_msg = NULL;
-	
-//	for(i=0; i<prob.l; i++){
-//		Rprintf("Sample %d with label %d:\n",i,prob.y[i]);
-//		j=0;
-//		//x_space = Malloc(struct feature_node,prob.n);
-//		x_space = prob.x[i];
-//		int cont=1;
-//		while( cont ){
-//			if(x_space[j].index == -1){ 
-//				Rprintf("(%d;Garbage)\t",x_space[j].index);
-//				cont = 0; 
-//			}
-//			else{
-//				Rprintf("(%d;%f)\t",x_space[j].index,x_space[j].value);
-//			}
-//			
-//			j++;
-//		}
-//		Rprintf("\n");
-//	}
 	
 	error_msg = check_parameter(&prob,&param);
 	

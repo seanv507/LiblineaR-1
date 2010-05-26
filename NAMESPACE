@@ -1,5 +1,4 @@
-useDynLib(trainLinear)
-useDynLib(predictLinear)
+useDynLib(LiblineaR)
 
 export(LiblineaR,heuristicC)
          

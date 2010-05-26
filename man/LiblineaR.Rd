@@ -147,6 +147,8 @@ and\cr
 }
 \examples{
 data(iris)
+attach(iris)
+
 x=iris[,1:4]
 y=factor(iris[,5])
 train=sample(1:dim(iris)[1],100)

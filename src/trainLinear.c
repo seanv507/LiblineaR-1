@@ -20,7 +20,9 @@ int flag_cross_validation;
 int nr_fold;
 double bias;
 	
-void do_cross_validation(void);
+
+double do_cross_validation(void);
+
 void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
 
 
@@ -138,7 +140,8 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 		if(*verbose){
 			Rprintf("CROSS VAL\n");
 		}
-		do_cross_validation();
+		//do_cross_validation();
+		W[0]=do_cross_validation();
 	}
 	else{
 		if(*verbose){
@@ -188,8 +191,13 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 	return;
 }
 
-
-void do_cross_validation(void)
+/**
+ * Function: do_cross_validation
+ *
+ * Author: Thibault Helleputte
+ *
+ */
+double do_cross_validation(void)
 {
 	int i;
 	int total_correct = 0;
@@ -198,7 +206,6 @@ void do_cross_validation(void)
 	for(i=0;i<prob.l;i++)
 		if(target[i] == prob.y[i])
 			++total_correct;
-	printf("Cross Validation Accuracy = %g%%\n",100.0*total_correct/prob.l);
-
 	free(target);
+	return(1.0*total_correct/prob.l);
 }

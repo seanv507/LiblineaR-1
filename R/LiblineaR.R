@@ -116,30 +116,31 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 			as.integer(cross),
 			as.integer(verbose)
 			)
-	
-	if(nbClass==2){
-		w=matrix(nc=dim(W)[2],nr=1,data=ret[[1]])
-	}
-	else{
-		w=matrix(nc=dim(W)[2]/nbClass,nr=nbClass,data=ret[[1]],byrow=TRUE)
-	}
-	if(!is.null(colnames(data))){
-		if(bias){
-			colnames(w)=c(colnames(data),"Bias")
-		}
-		else{
-			colnames(w)=colnames(data)
-		}
-	}
-	else{
-		if(bias){
-			colnames(w)=c(paste("W",c(1:dim(data)[2]),sep=""),"Bias")
-		}
-		else{
-			colnames(w)=c(paste("W",c(1:dim(data)[2]),sep=""))
-		}
-	}
+			
 	if(cross==0){
+		if(nbClass==2){
+			w=matrix(nc=dim(W)[2],nr=1,data=ret[[1]])
+		}
+		else{
+			w=matrix(nc=dim(W)[2]/nbClass,nr=nbClass,data=ret[[1]],byrow=TRUE)
+		}
+		if(!is.null(colnames(data))){
+			if(bias){
+				colnames(w)=c(colnames(data),"Bias")
+			}
+			else{
+				colnames(w)=colnames(data)
+			}
+		}
+		else{
+			if(bias){
+				colnames(w)=c(paste("W",c(1:dim(data)[2]),sep=""),"Bias")
+			}
+			else{
+				colnames(w)=c(paste("W",c(1:dim(data)[2]),sep=""))
+			}
+		}
+	
 		types=c("L2-regularized logistic regression (L2R_LR)", "L2-regularized L2-loss support vector classification dual (L2R_L2LOSS_SVC_DUAL)", "L2-regularized L2-loss support vector classification primal (L2R_L2LOSS_SVC)", "L2-regularized L1-loss support vector classification dual (L2R_L1LOSS_SVC_DUAL)", "multi-class support vector classification by Crammer and Singer (MCSVM_CS)", "L1-regularized L2-loss support vector classification (L1R_L2LOSS_SVC)", "L1-regularized logistic regression (L1R_LR)")
 		m=list()
 		class(m)="LiblineaR"
@@ -150,5 +151,8 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 		m$ClassNames=yLev
 		m$NbClass=nbClass
 		return(m)
+	}
+	else{
+		return(ret[[1]][1])
 	}
 }

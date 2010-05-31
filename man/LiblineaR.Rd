@@ -116,7 +116,7 @@ and\cr
 \eqn{C^m_i = 0 \mbox{ if } m != y_i}{C^m_i = 0 if m != y_i}.
 }
 \value{
-	If \code{cross}>0, nothing is returned.\cr\cr
+	If \code{cross}>0, the average accuracy computed over \code{cross} runs of cross-validation is returned.\cr\cr
 	Otherwise, an object of class \code{"LiblineaR"} containing the fitted model is returned, including:
 	\item{TypeDetail}{A string decsribing the type of model fitted, as determined by \code{type}.}
 	\item{Type}{An integer corresponding to \code{type}.}
@@ -166,12 +166,16 @@ t=0
 
 # Tune the cost parameter of a logistic regression via a 10-fold cross-validation
 try=c(1000,100,10,1,0.1,0.01,0.001)
+res=c()
 for(co in try){
-	LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,cross=10,verbose=FALSE)
+	acc=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,cross=10,verbose=FALSE)
+	res=c(res,acc)
+	cat("Results for C=",co," : ",acc," accuracy.\n",sep="")
 }
 
-# Best value is around c=100
-co=100
+# Re-train a model with best C value.
+best=which.max(res)
+co=try[best]
 m=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,verbose=FALSE)
 
 # Scale the test data

@@ -113,7 +113,7 @@ pre=prediction(predictions=p$probabilities[,"versicolor"],labels=lab)
 per=performance(pre,"tpr","fpr")
 AUC=(performance(pre,"auc"))@y.values[[1]]
 subtitle=paste("AUC:",AUC)
-plot(per,main="ROC Curve: Versicolor against Setosa and Virginica",xlab="True Positive Rate",ylab="False Positive Rate",sub=subtitle)
+\dontrun{plot(per,main="ROC Curve: Versicolor against Setosa and Virginica",xlab="True Positive Rate",ylab="False Positive Rate",sub=subtitle)}
 
 }
 

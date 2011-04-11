@@ -11,6 +11,7 @@
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
 void print_null(const char *s) {}
+double do_cross_validation(void);
 
 struct feature_node *x_space;
 struct parameter param;
@@ -20,8 +21,6 @@ int flag_cross_validation;
 int nr_fold;
 double bias;
 	
-
-double do_cross_validation(void);
 
 void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
 

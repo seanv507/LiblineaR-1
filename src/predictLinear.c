@@ -9,9 +9,6 @@
 #include <errno.h>
 #include "linear.h"
 
-struct feature_node *x;
-struct parameter par;
-struct model model_;
 
 void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type);
 
@@ -24,6 +21,9 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
  */
 void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type){
 	
+	struct feature_node *x;
+	struct parameter par;
+	struct model model_;
 	int i, j, n, predict_label;
 	double *prob_estimates=NULL;
 	double *decision_values=NULL;

@@ -81,18 +81,18 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 	# Return storage preparation
 	if(nbClass==2){
 		if(bias){
-			W=matrix(nc=p+1,nr=1,data=0)
+			W=matrix(ncol=p+1,nrow=1,data=0)
 		}
 		else{
-			W=matrix(nc=p,nr=1,data=0)
+			W=matrix(ncol=p,nrow=1,data=0)
 		}
 	}
 	else if(nbClass>2){
 		if(bias){
-			W=matrix(nc=(p+1)*nbClass,nr=1,data=0)
+			W=matrix(ncol=(p+1)*nbClass,nrow=1,data=0)
 		}
 		else{
-			W=matrix(nc=p*nbClass,nr=1,data=0)
+			W=matrix(ncol=p*nbClass,nrow=1,data=0)
 		}
 	}
 	else{
@@ -123,10 +123,10 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 			
 	if(cross==0){
 		if(nbClass==2){
-			w=matrix(nc=dim(W)[2],nr=1,data=ret[[1]])
+			w=matrix(ncol=dim(W)[2],nrow=1,data=ret[[1]])
 		}
 		else{
-			w=matrix(nc=dim(W)[2]/nbClass,nr=nbClass,data=ret[[1]],byrow=TRUE)
+			w=matrix(ncol=dim(W)[2]/nbClass,nrow=nbClass,data=ret[[1]],byrow=TRUE)
 		}
 		if(!is.null(colnames(data))){
 			if(bias){

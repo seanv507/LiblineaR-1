@@ -29,20 +29,20 @@ predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){ #
 		}
 		else{
 			# Returned probabilities storage preparation 
-			Probabilities=matrix(nc=n*length(object$ClassNames),nr=1,data=0)
+			Probabilities=matrix(ncol=n*length(object$ClassNames),nrow=1,data=0)
 		}
 	}
 	
 
 	# Returned labels storage preparation
-	Y=matrix(nc=n,nr=1,data=0)
+	Y=matrix(ncol=n,nrow=1,data=0)
 	
 	# Returned decision values default storage preparation
 	DecisionValues=matrix(data=-1)
 
 	# Returned decision values storage preparation
 	if(decisionValues)
-		DecisionValues=matrix(nc=n*length(object$ClassNames),nr=1,data=0)
+		DecisionValues=matrix(ncol=n*length(object$ClassNames),nrow=1,data=0)
 
 
 	# Type 
@@ -80,12 +80,12 @@ predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){ #
 	result$predictions=object$ClassNames[ret[[1]]]
 
 	if(proba){
-		result$probabilities=matrix(nc=length(object$ClassNames),nr=n,data=ret[[7]],byrow=TRUE)
+		result$probabilities=matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)
 		colnames(result$probabilities)=object$ClassNames
 	}
 	
 	if(decisionValues){
-		result$decisionValues=matrix(nc=length(object$ClassNames),nr=n,data=ret[[5]],byrow=TRUE)
+		result$decisionValues=matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[5]],byrow=TRUE)
 		colnames(result$decisionValues)=object$ClassNames
 	}
 

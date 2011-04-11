@@ -1806,10 +1806,11 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 	}
 }
 
-//
+////////////////////////////////////////////////////////////////////
 // Interface functions
-//
-model* train(const problem *prob, const parameter *param)
+////////////////////////////////////////////////////////////////////
+
+extern "C" model* train(const problem *prob, const parameter *param)
 {
 	int i,j;
 	int l = prob->l;
@@ -1931,7 +1932,7 @@ model* train(const problem *prob, const parameter *param)
 	return model_;
 }
 
-void cross_validation(const problem *prob, const parameter *param, int nr_fold, int *target)
+extern "C" void cross_validation(const problem *prob, const parameter *param, int nr_fold, int *target)
 {
 	int i;
 	int *fold_start = Malloc(int,nr_fold+1);
@@ -1984,7 +1985,7 @@ void cross_validation(const problem *prob, const parameter *param, int nr_fold, 
 	free(perm);
 }
 
-int predict_values(const struct model *model_, const struct feature_node *x, double *dec_values)
+extern "C" int predict_values(const struct model *model_, const struct feature_node *x, double *dec_values)
 {
 	int idx;
 	int n;
@@ -2026,7 +2027,7 @@ int predict_values(const struct model *model_, const struct feature_node *x, dou
 	}
 }
 
-int predict(const model *model_, const feature_node *x)
+extern "C" int predict(const model *model_, const feature_node *x)
 {
 	double *dec_values = Malloc(double, model_->nr_class);
 	int label=predict_values(model_, x, dec_values);
@@ -2034,7 +2035,7 @@ int predict(const model *model_, const feature_node *x)
 	return label;
 }
 
-int predict_probability(const struct model *model_, const struct feature_node *x, double* prob_estimates)
+extern "C" int predict_probability(const struct model *model_, const struct feature_node *x, double* prob_estimates)
 {
 	if(check_probability_model(model_))
 	{
@@ -2074,7 +2075,7 @@ static const char *solver_type_table[]=
 	"L1R_L2LOSS_SVC", "L1R_LR", "L2R_LR_DUAL", NULL
 };
 
-int save_model(const char *model_file_name, const struct model *model_)
+extern "C" int save_model(const char *model_file_name, const struct model *model_)
 {
 	int i;
 	int nr_feature=model_->nr_feature;
@@ -2119,7 +2120,7 @@ int save_model(const char *model_file_name, const struct model *model_)
 	else return 0;
 }
 
-struct model *load_model(const char *model_file_name)
+extern "C" struct model *load_model(const char *model_file_name)
 {
 	FILE *fp = fopen(model_file_name,"r");
 	if(fp==NULL) return NULL;
@@ -2217,24 +2218,24 @@ struct model *load_model(const char *model_file_name)
 	return model_;
 }
 
-int get_nr_feature(const model *model_)
+extern "C" int get_nr_feature(const model *model_)
 {
 	return model_->nr_feature;
 }
 
-int get_nr_class(const model *model_)
+extern "C" int get_nr_class(const model *model_)
 {
 	return model_->nr_class;
 }
 
-void get_labels(const model *model_, int* label)
+extern "C" void get_labels(const model *model_, int* label)
 {
 	if (model_->label != NULL)
 		for(int i=0;i<model_->nr_class;i++)
 			label[i] = model_->label[i];
 }
 
-void free_model_content(struct model *model_ptr)
+extern "C" void free_model_content(struct model *model_ptr)
 {
 	if(model_ptr->w != NULL)
 		free(model_ptr->w);
@@ -2242,7 +2243,7 @@ void free_model_content(struct model *model_ptr)
 		free(model_ptr->label);
 }
 
-void free_and_destroy_model(struct model **model_ptr_ptr)
+extern "C" void free_and_destroy_model(struct model **model_ptr_ptr)
 {
 	struct model *model_ptr = *model_ptr_ptr;
 	if(model_ptr != NULL)
@@ -2252,7 +2253,7 @@ void free_and_destroy_model(struct model **model_ptr_ptr)
 	}
 }
 
-void destroy_param(parameter* param)
+extern "C" void destroy_param(parameter* param)
 {
 	if(param->weight_label != NULL)
 		free(param->weight_label);
@@ -2260,7 +2261,7 @@ void destroy_param(parameter* param)
 		free(param->weight);
 }
 
-const char *check_parameter(const problem *prob, const parameter *param)
+extern "C" const char *check_parameter(const problem *prob, const parameter *param)
 {
 	if(param->eps <= 0)
 		return "eps <= 0";
@@ -2281,14 +2282,14 @@ const char *check_parameter(const problem *prob, const parameter *param)
 	return NULL;
 }
 
-int check_probability_model(const struct model *model_)
+extern "C" int check_probability_model(const struct model *model_)
 {
 	return (model_->param.solver_type==L2R_LR ||
 			model_->param.solver_type==L2R_LR_DUAL ||
 			model_->param.solver_type==L1R_LR);
 }
 
-void set_print_string_function(void (*print_func)(const char*))
+extern "C" void set_print_string_function(void (*print_func) (const char*))
 {
 	if (print_func == NULL) 
 		liblinear_print_string = &print_string_stdout;

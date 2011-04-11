@@ -74,7 +74,7 @@ s2=scale(xTest,attr(s,"scaled:center"),attr(s,"scaled:scale"))
 p=predict(m,s2)
 
 # Display confusion matrix
-res=table(p,yTest)
+res=table(p$predictions,yTest)
 print(res)
 
 # Compute Balanced Classification Rate

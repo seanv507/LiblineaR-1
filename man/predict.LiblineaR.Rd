@@ -6,7 +6,7 @@
 	The function takes a model produced by the \code{LiblineaR} function and a data matrix and classifies every row of the matrix as belonging to one of the classes considered by the model.
 }
 \usage{
-	\method{predict}{LiblineaR}(object, newx, proba = FALSE, ...)
+	\method{predict}{LiblineaR}(object, newx, proba = FALSE, decisionValues = FALSE, ...)
 }
 \arguments{
   \item{object}{
@@ -16,17 +16,22 @@
 	An n x p matrix containing the new input data. A vector will be transformed to a n x 1 matrix.
 }
   \item{proba}{
-	Logical indicating whether class probabilities should be computed and returned. Only possible if the model was fitted with \code{type}=0, i.e. a plain L2-regularized Logistic Regression. Default is \code{FALSE}.
+	Logical indicating whether class probabilities should be computed and returned. Only possible if the model was fitted with \code{type}=0, \code{type}=6 or \code{type}=7, i.e. a Logistic Regression. Default is \code{FALSE}.
+}
+  \item{decisionValues}{
+	Logical indicating whether model decision values should be computed and returned. Default is \code{FALSE}.
 }
   \item{...}{
 	Currently not used.
 }
 }
-\details{
-	If \code{proba} is \code{TRUE}, a n x k matrix (k number of classes) of the class probabilities is printed.
-}
 \value{
-	A vector of predicted labels. 
+	By default, the returned value is a list with a single entry:
+	\item{predictions}{A vector of predicted labels.}
+	If \code{proba} is set to \code{TRUE}, and the fitted model is a logistic regression, an additional entry is returned:
+	\item{probabilities}{An n x k matrix (k number of classes) of the class probabilities. The columns of this matrix are named after class labels.}
+	If \code{decisionValues} is set to \code{TRUE}, an additional entry is returned:
+	\item{decisionValues}{An n x k matrix (k number of classes) of the model decision values. The columns of this matrix are named after class labels.}
 }
 \references{
 \itemize{
@@ -89,12 +94,26 @@ s2=scale(xTest,attr(s,"scaled:center"),attr(s,"scaled:scale"))
 p=predict(m,s2,proba=TRUE)
 
 # Display confusion matrix
-res=table(p,yTest)
+res=table(p$predictions,yTest)
 print(res)
 
 # Compute Balanced Classification Rate
 BCR=mean(c(res[1,1]/sum(res[,1]),res[2,2]/sum(res[,2]),res[3,3]/sum(res[,3])))
 print(BCR)
+
+# Plot a ROC curve for class setosa against the rest:
+library(ROCR)
+s3=scale(x,center=TRUE,scale=TRUE)
+m=LiblineaR(data=s3,labels=y,type=0,cost=co,bias=TRUE,verbose=FALSE)
+p=predict(m,s3,proba=TRUE)
+lab=as.matrix(y)
+lab[which(lab!="versicolor")]=1
+lab[which(lab=="versicolor")]=-1
+pre=prediction(predictions=p$probabilities[,"versicolor"],labels=lab)
+per=performance(pre,"tpr","fpr")
+AUC=(performance(pre,"auc"))@y.values[[1]]
+subtitle=paste("AUC:",AUC)
+plot(per,main="ROC Curve: Versicolor against Setosa and Virginica",xlab="True Positive Rate",ylab="False Positive Rate",sub=subtitle)
 
 }
 

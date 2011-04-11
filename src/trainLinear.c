@@ -34,6 +34,7 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
  */
 void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose){
 	
+	void (*print_func)(const char*) = NULL;	// default printing to stdout
 	const char *error_msg;
 	int i, j, k, max_index;
 	i=j=k=0;
@@ -47,12 +48,14 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 	param.C = *cost;
 	// Verbose or not?
 	if(!*verbose){
-		liblinear_print_string = &print_null;
+//		liblinear_print_string = &print_null;
+		print_func = &print_null;
 	}
+	set_print_string_function(print_func);
 	if(*epsilon <= 0){
 		if(param.solver_type == L2R_LR || param.solver_type == L2R_L2LOSS_SVC)
 			param.eps = 0.01;
-		else if(param.solver_type == L2R_L2LOSS_SVC_DUAL || param.solver_type == L2R_L1LOSS_SVC_DUAL || param.solver_type == MCSVM_CS)
+		else if(param.solver_type == L2R_L2LOSS_SVC_DUAL || param.solver_type == L2R_L1LOSS_SVC_DUAL || param.solver_type == MCSVM_CS || param.solver_type == L2R_LR_DUAL)
 			param.eps = 0.1;
 		else if(param.solver_type == L1R_L2LOSS_SVC || param.solver_type == L1R_LR)
 			param.eps = 0.01;
@@ -179,11 +182,12 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 				}	
 			}
 		}
-		destroy_model(model_);
+		free_and_destroy_model(&model_);
 	}
 	if(*verbose){
 		Rprintf("FREE SPACE\n");
 	}
+	//destroy_param(&param);
 	free(prob.y);
 	free(prob.x);
 	free(x_space);

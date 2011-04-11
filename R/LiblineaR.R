@@ -4,8 +4,8 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 	# Nb samples
 	n=dim(data)[1]
 	# Nb features
-	p=dim(data)[2]
-	
+	p=dim(data)[2]	
+
 	# Bias
 	if(bias){
 		b=1
@@ -15,8 +15,8 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 	}
 	
 	# Type 
-	if(type<0 || type>6){
-		cat("Wrong value for 'type'. Must be an integer between 0 and 6 included.\n")
+	if(type<0 || type>7){
+		cat("Wrong value for 'type'. Must be an integer between 0 and 7 included.\n")
 		return(-1)
 	}
 	
@@ -28,6 +28,10 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 	
 	# Different class penalties?
 	y=as.vector(labels)
+	if(length(y)!=n){
+		cat("Number of labels elements disagrees with number of data instances.\n")
+		return(-1)
+	}
 	yLev=unique(y)
 	nbClass=length(yLev)
 	yLevC=c(1:nbClass)
@@ -141,7 +145,7 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 			}
 		}
 	
-		types=c("L2-regularized logistic regression (L2R_LR)", "L2-regularized L2-loss support vector classification dual (L2R_L2LOSS_SVC_DUAL)", "L2-regularized L2-loss support vector classification primal (L2R_L2LOSS_SVC)", "L2-regularized L1-loss support vector classification dual (L2R_L1LOSS_SVC_DUAL)", "multi-class support vector classification by Crammer and Singer (MCSVM_CS)", "L1-regularized L2-loss support vector classification (L1R_L2LOSS_SVC)", "L1-regularized logistic regression (L1R_LR)")
+		types=c("L2-regularized logistic regression (L2R_LR)", "L2-regularized L2-loss support vector classification dual (L2R_L2LOSS_SVC_DUAL)", "L2-regularized L2-loss support vector classification primal (L2R_L2LOSS_SVC)", "L2-regularized L1-loss support vector classification dual (L2R_L1LOSS_SVC_DUAL)", "multi-class support vector classification by Crammer and Singer (MCSVM_CS)", "L1-regularized L2-loss support vector classification (L1R_L2LOSS_SVC)", "L1-regularized logistic regression (L1R_LR)","L2-regularized logistic regression dual (L2R_LR_DUAL)")
 		m=list()
 		class(m)="LiblineaR"
 		m$TypeDetail=types[type+1]

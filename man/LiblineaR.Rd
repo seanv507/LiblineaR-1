@@ -24,6 +24,7 @@
 	        \item 4 -- multi-class support vector classification by Crammer and Singer
 	        \item 5 -- L1-regularized L2-loss support vector classification
 	        \item 6 -- L1-regularized logistic regression
+		\item 7 -- L2-regularized logistic regression (dual)
 		}
 }
   \item{cost}{
@@ -33,13 +34,13 @@
 	set tolerance of termination criterion for optimization. Default to 0.01. If \code{NULL}, the liblinear defaults are used, which are:
 		\describe{
 	        \item{if \code{type} is 0, 2, 5 or 6}{\code{epsilon}=0.01}
-	        \item{if \code{type} is 1, 3, or 4}{\code{epsilon}=0.1}
+	        \item{if \code{type} is 1, 3, 4 or 7}{\code{epsilon}=0.1}
 		}
 	The meaning of \code{epsilon} is as follows:
 		\describe{
 	        \item{if \code{type} is 0 or 2:}{\eqn{|f'(w)|_{2} \le \code{epsilon}*\min(pos,neg)/l*|f'(w_{0})|_{2}}{|f'(w)|_2 <= \code{epsilon}*min(pos,neg)/l*|f'(w0)|_2},\cr
 	                where f is the primal function and pos/neg are # of positive/negative data.}
-	        \item{if \code{type} is 1, 3, or 4:}{Dual maximal violation \eqn{\le}{<=} \code{epsilon}}
+	        \item{if \code{type} is 1, 3, 4 or 7:}{Dual maximal violation \eqn{\le}{<=} \code{epsilon}}
 	        \item{if \code{type} is 5 or 6:}{\eqn{|f'(w)|_\infty \le \code{epsilon}*\min(pos,neg)/l*|f'(w_{0})|_\infty}{|f'(w)|_inf <= \code{epsilon}*min(pos,neg)/l*|f'(w0)|_inf},\cr
 	        		where f is the primal function}
 		}
@@ -58,62 +59,7 @@
 }
 }
 \details{
-We report here details for the implementation of liblinear.\cr
-\cr
-For L2-regularized logistic regression (\code{type}=0), we solve:\cr
-\cr
-\eqn{\min_{w} \frac{1}{2}w^{T}w + C \sum \log(1 + exp(-y_{i} w^{T}x_{i}))}{min_w w^Tw/2 + C \sum log(1 + exp(-y_i w^Tx_i))}\cr
-\cr
-For L2-regularized L2-loss SVC dual (\code{type}=1), we solve\cr
-\cr
-\eqn{\min_{\alpha}  0.5(\alpha^{T} (Q + I/2/C) \alpha) - e^{T} \alpha}{min_alpha  0.5(alpha^T (Q + I/2/C) alpha) - e^T alpha}\cr
-s.t.   \eqn{0 \le \alpha_{i}}{0 <= alpha_i},\cr
-\cr
-For L2-regularized L2-loss SVC (\code{type}=2), we solve\cr
-\cr
-\eqn{\min_{w} \frac{1}{2}w^{T}w + C \sum \max(0, 1- y_{i} w^{T}x_{i})^{2}}{min_w w^Tw/2 + C sum max(0, 1- y_i w^Tx_i)^2}\cr
-\cr
-For L2-regularized L1-loss SVC dual (\code{type}=3), we solve\cr
-\cr
-\eqn{\min_{\alpha}  0.5(\alpha^{T} Q \alpha) - e^{T} \alpha}{min_alpha  0.5(alpha^T Q alpha) - e^T alpha}\cr
-s.t.   \eqn{0 \le \alpha_{i} \le C}{0 <= alpha_i <= C},\cr
-\cr
-For L1-regularized L2-loss SVC (\code{type}=5), we solve\cr
-\cr
-\eqn{\min_{w} \sum |w_{j}| + C \sum \max(0, 1- y_{i} w^{T}x_{i})^{2}}{min_w sum |w_j| + C sum max(0, 1- y_i w^Tx_i)^2}\cr
-\cr
-For L1-regularized logistic regression (\code{type}=6), we solve\cr
-\cr
-\eqn{\min_{w} \sum |w_{j}| + C \sum \log(1 + exp(-y_{i} w^{T}x_{i}))}{min_w sum |w_j| + C sum log(1 + exp(-y_i w^Tx_i))}\cr
-\cr
-where\cr
-\cr
-Q is a matrix with \eqn{Q_{ij} = y_{i} y_{j} x_{i}^{T} x_{j}}{Q_ij = y_i y_j x_i^T x_j}.\cr
-\cr
-If \code{bias} is \code{TRUE}, w becomes [w; w_(n+1)] and x becomes [x; 1].\cr
-\cr
-The primal-dual relationship implies that \code{type}=1 and \code{type}=2 gives the same model.\cr
-\cr
-We implement 1-vs-the rest multi-class strategy. In training i vs. non_i, their C parameters are (weight from wi)*C and C, respectively. If there are only two classes, we train only one model. Thus weight1*C vs. weight2*C is used.\cr
-\cr
-We also implement multi-class SVM by Crammer and Singer (\code{type}=4):\cr
-\cr
-\eqn{\min_{w_{m}, \xi_{i}}  0.5 \sum_{m} ||w_{m}||^{2} + C \sum_{i} \xi_{i}}{min_{w_m, \xi_i}  0.5 \sum_m ||w_m||^2 + C \sum_i \xi_i}\cr
-s.t.  \eqn{w^{T}_{y_{i}} x_{i} - w^{T}_{m} x_{i} \ge e^{m}_{i} - \xi_{i} \forall m,i}{w^T_{y_i} x_i - w^T_m x_i >= e^m_i - \xi_i \forall m,i}\cr
-\cr
-where\cr
-\eqn{e^m_i = 0 \mbox{ if } y_i  = m}{e^m_i = 0 if y_i  = m},\cr
-\eqn{e^m_i = 1 \mbox{ if } y_i != m}{e^m_i = 1 if y_i != m},\cr
-\cr
-Here we solve the dual problem:\cr
-\cr
-\eqn{\min_{\alpha}  0.5 \sum_{m} ||w_{m}(\alpha)||^{2} + \sum_{i} \sum_{m} e^{m}_{i} \alpha^{m}_{i}}{min_alpha  0.5 sum_m ||w_m(alpha)||^2 + sum_i sum_m e^m_i alpha^m_i}\cr
-s.t.  \eqn{\alpha^{m}_{i} \le C^{m}_{i} \forall m,i, \sum_{m} \alpha^{m}_{i}=0 \forall i}{alpha^m_i <= C^m_i forall m,i, sum_m alpha^m_i=0 forall i}\cr
-\cr
-where \eqn{w_{m}(\alpha) = \sum_{i} \alpha^{m}_{i} x_{i}}{w_m(alpha) = sum_i alpha^m_i x_i},\cr
-and\cr
-\eqn{C^m_i = C \mbox{ if } m  = y_i}{C^m_i = C if m  = y_i},\cr
-\eqn{C^m_i = 0 \mbox{ if } m != y_i}{C^m_i = 0 if m != y_i}.
+	For details for the implementation of liblinear, see the README file of the original c/c++ liblinear library at \url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}.
 }
 \value{
 	If \code{cross}>0, the average accuracy computed over \code{cross} runs of cross-validation is returned.\cr\cr
@@ -164,28 +110,43 @@ s=scale(xTrain,center=TRUE,scale=TRUE)
 # Logistic Regression
 t=0
 
-# Tune the cost parameter of a logistic regression via a 10-fold cross-validation
-try=c(1000,100,10,1,0.1,0.01,0.001)
-res=c()
-for(co in try){
-	acc=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,cross=10,verbose=FALSE)
-	res=c(res,acc)
+# Find the best model with the best cost parameter via 10-fold cross-validations
+tryTypes=c(0:7)
+tryCosts=c(1000,100,10,1,0.1,0.01,0.001)
+bestCost=NA
+bestAcc=0
+bestType=NA
+
+for(ty in tryTypes){
+for(co in tryCosts){
+	acc=LiblineaR(data=s,labels=yTrain,type=ty,cost=co,bias=TRUE,cross=10,verbose=FALSE)
 	cat("Results for C=",co," : ",acc," accuracy.\n",sep="")
+	if(acc>bestAcc){
+		bestCost=co
+		bestAcc=acc
+		bestType=ty
+	}
+}
 }
 
-# Re-train a model with best C value.
-best=which.max(res)
-co=try[best]
-m=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,verbose=FALSE)
+cat("Best model type is:",bestType,"\n")
+cat("Best cost is:",bestCost,"\n")
+cat("Best accuracy is:",bestAcc,"\n")
+
+# Re-train best model with best cost value.
+m=LiblineaR(data=s,labels=yTrain,type=bestType,cost=bestCost,bias=TRUE,verbose=FALSE)
 
 # Scale the test data
 s2=scale(xTest,attr(s,"scaled:center"),attr(s,"scaled:scale"))
 
 # Make prediction
-p=predict(m,s2,proba=TRUE)
+pr=FALSE
+if(bestType==0 | bestType==7) pr=TRUE
+
+p=predict(m,s2,proba=pr,decisionValues=TRUE)
 
 # Display confusion matrix
-res=table(p,yTest)
+res=table(p$predictions,yTest)
 print(res)
 
 # Compute Balanced Classification Rate

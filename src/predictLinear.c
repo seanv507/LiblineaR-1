@@ -13,7 +13,7 @@ struct feature_node *x;
 struct parameter par;
 struct model model_;
 
-void predictLinear(double *Y, double *X, double *W, int *proba, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type);
+void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type);
 
 
 /**
@@ -22,10 +22,11 @@ void predictLinear(double *Y, double *X, double *W, int *proba, int *nbClass, in
  * Author: Thibault Helleputte
  *
  */
-void predictLinear(double *Y, double *X, double *W, int *proba, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type){
+void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type){
 	
 	int i, j, n, predict_label;
 	double *prob_estimates=NULL;
+	double *decision_values=NULL;
 	
 	// RECONSTRUCT THE (REQUIRED) PARAMETERS
 	par.solver_type=*type;
@@ -46,13 +47,18 @@ void predictLinear(double *Y, double *X, double *W, int *proba, int *nbClass, in
 	
 	x = (struct feature_node *) malloc(n*sizeof(struct feature_node));
 	
-	if(*proba){
-		if(model_.param.solver_type!=L2R_LR){
-			Rprintf("Probability output is only supported for logistic regression\n");
-			return;
+	if(*proba)
+	{
+		if(!check_probability_model(&model_))
+		{
+			Rprintf("Error: probability output is only supported for logistic regression.\n");
+			exit(1);
 		}
 		prob_estimates = (double *) malloc(*nbClass*sizeof(double));
 	}
+	
+	if(*decisionValues)
+		decision_values = (double *) malloc(*nbClass*sizeof(double));
 
 	// PREDICTION PROCESS	
 	for(i=0; i<*nbSamples; i++){
@@ -71,19 +77,24 @@ void predictLinear(double *Y, double *X, double *W, int *proba, int *nbClass, in
 
 		if(*proba){
 			predict_label = predict_probability(&model_,x,prob_estimates);
-			Rprintf("%d",predict_label);
 			for(j=0;j<model_.nr_class;j++)
-				Rprintf("\t%.8f",prob_estimates[j]);
-			Rprintf("\n");
-			Y[i]=predict_label;
+				Probabilities[model_.nr_class*i+j]=prob_estimates[j];
 		}
 		else{
 			predict_label = predict(&model_,x);
-			Y[i] = predict_label;
+		}
+		Y[i]=predict_label;
+
+		if(*decisionValues){
+			predict_label = predict_values(&model_,x,decision_values);
+			for(j=0;j<model_.nr_class;j++)
+				DecisionValues[model_.nr_class*i+j]=decision_values[j];
 		}
 	}
 	if(*proba)
 		free(prob_estimates);
+	if(*decisionValues)
+		free(decision_values);
 	return;
 }
 

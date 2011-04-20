@@ -50,9 +50,6 @@ int predict_values(const struct model *model_, const struct feature_node *x, dou
 int predict(const struct model *model_, const struct feature_node *x);
 int predict_probability(const struct model *model_, const struct feature_node *x, double* prob_estimates);
 
-int save_model(const char *model_file_name, const struct model *model_);
-struct model *load_model(const char *model_file_name);
-
 int get_nr_feature(const struct model *model_);
 int get_nr_class(const struct model *model_);
 void get_labels(const struct model *model_, int* label);

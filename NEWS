@@ -1,6 +1,69 @@
+1.80-4: 2011/04/21
+
+	1. Correct bugs in linear.cpp (update of solve_l1r_l2_svc and solve_l1r_lr)
+
+1.80-3: 2011/04/20
+	
+	1. Add:
+
+	extern "C" 
+
+	before each function below :
+
+	//
+	// Interface function
+	//
+	
+	in linear.cpp
+
+	2. Suppress useless functions:
+
+	- save_model
+	- load_model
+	
+	in:
+	
+	linear.cpp
+	linear.h	
+
+	3. change all "fprintf" into Rprintf in :
+	linear.cpp
+	trainLinear.c
+	predictLinear.c
+
+	4. change:
+
+	#define Malloc(type,n) (type *)malloc((n)*sizeof(type)) 
+
+	into 
+
+	#define Malloc(type,n) (type *)Calloc(n,type)
+
+	in:
+	trainLinear.c
+	linear.cpp
+
+	5. replace all the malloc((n)*sizeof(type)) by Calloc(n,type) in predictLinear.c
+
+	5. replace all the realloc(*p,size) by Realloc(*p,n,type) in linear.cpp
+
+	7. replace all free() by Free() in:
+
+	trainLinear.c
+	predictLinear.c
+	linear.cpp
+
+	8. Add
+	
+	#include <R.h>
+	#include <Rinternals.h>
+	#include <R_ext/Rdynload.h>
+	
+	in linear.cpp
+
 1.80-2: 2011/04/12
 
-	Incorporate changes from LIBLINEAR versions 1.51 to 1.80:
+	1. Incorporate changes from LIBLINEAR versions 1.51 to 1.80:
 		- Use set_print_string_function to set the print function
 		- Add free_model_content and free_and_destroy_model functions (avoid memory problem if users declare a model variable)
 		- Add check_probability_model (consistent with libsvm)
@@ -10,7 +73,7 @@
 			* Use 1-norm stopping condition for l1-regularized solvers 
 			* newton_iter < l/10 replaced by newton_iter <= l/10 in l2r_lr_dual (for l < 10)
 		
-	predict.LiblineaR function can return additional information:
+	2. predict.LiblineaR function can return additional information:
 		- probabilities (only for logistic regression models)
 		- decision values
 

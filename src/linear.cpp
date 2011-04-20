@@ -1,3 +1,6 @@
+#include <R.h>
+#include <Rinternals.h>
+#include <R_ext/Rdynload.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +21,7 @@ template <class S, class T> static inline void clone(T*& dst, S* src, int n)
 	dst = new T[n];
 	memcpy((void *)dst,(void *)src,sizeof(T)*n);
 }
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
+#define Malloc(type,n) (type *)Calloc(n,type)
 #define INF HUGE_VAL
 
 static void print_string_stdout(const char *s)
@@ -1086,8 +1089,8 @@ static void solve_l1r_l2_svc(
 	double sigma = 0.01;
 	double d, G_loss, G, H;
 	double Gmax_old = INF;
-	double Gmax_new;
-	double Gmax_init;
+	double Gmax_new, Gnorm1_new;
+	double Gnorm1_init;
 	double d_old, d_diff;
 	double loss_old, loss_new;
 	double appxcond, cond;
@@ -1126,7 +1129,8 @@ static void solve_l1r_l2_svc(
 
 	while(iter < max_iter)
 	{
-		Gmax_new  = 0;
+		Gmax_new = 0;
+		Gnorm1_new = 0;
 
 		for(j=0; j<active_size; j++)
 		{
@@ -1182,6 +1186,7 @@ static void solve_l1r_l2_svc(
 				violation = fabs(Gn);
 
 			Gmax_new = max(Gmax_new, violation);
+			Gnorm1_new += violation;
 
 			// obtain Newton direction d
 			if(Gp <= H*w[j])
@@ -1280,12 +1285,12 @@ static void solve_l1r_l2_svc(
 		}
 
 		if(iter == 0)
-			Gmax_init = Gmax_new;
+			Gnorm1_init = Gnorm1_new;
 		iter++;
 		if(iter % 10 == 0)
 			info(".");
 
-		if(Gmax_new <= eps*Gmax_init)
+		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
 			if(active_size == w_size)
 				break;
@@ -1347,7 +1352,7 @@ static void solve_l1r_l2_svc(
 //
 // solution will be put in w
 //
-// See Yuan et al. (2010) and appendix of LIBLINEAR paper, Fan et al. (2008)
+// See Yuan et al. (2011) and appendix of LIBLINEAR paper, Fan et al. (2008)
 
 #undef GETI
 #define GETI(i) (y[i]+1)
@@ -1359,100 +1364,93 @@ static void solve_l1r_lr(
 {
 	int l = prob_col->l;
 	int w_size = prob_col->n;
-	int j, s, iter = 0;
+	int j, s, newton_iter=0, iter=0;
+	int max_newton_iter = 100;
 	int max_iter = 1000;
-	int active_size = w_size;
 	int max_num_linesearch = 20;
+	int active_size;
+	int QP_active_size;
 
-	double x_min = 0;
+	double nu = 1e-12;
+	double inner_eps = 1;
 	double sigma = 0.01;
-	double d, G, H;
+	double w_norm=0, w_norm_new;
+	double z, G, H;
+	double Gnorm1_init;
 	double Gmax_old = INF;
-	double Gmax_new;
-	double Gmax_init;
-	double sum1, appxcond1;
-	double sum2, appxcond2;
-	double cond;
+	double Gmax_new, Gnorm1_new;
+	double QP_Gmax_old = INF;
+	double QP_Gmax_new, QP_Gnorm1_new;
+	double delta, negsum_xTd, cond;
 
 	int *index = new int[w_size];
 	schar *y = new schar[l];
+	double *Hdiag = new double[w_size];
+	double *Grad = new double[w_size];
+	double *wpd = new double[w_size];
+	double *xjneg_sum = new double[w_size];
+	double *xTd = new double[l];
 	double *exp_wTx = new double[l];
 	double *exp_wTx_new = new double[l];
-	double *xj_max = new double[w_size];
-	double *C_sum = new double[w_size];
-	double *xjneg_sum = new double[w_size];
-	double *xjpos_sum = new double[w_size];
+	double *tau = new double[l];
+	double *D = new double[l];
 	feature_node *x;
 
 	double C[3] = {Cn,0,Cp};
 
 	for(j=0; j<l; j++)
 	{
-		exp_wTx[j] = 1;
 		if(prob_col->y[j] > 0)
 			y[j] = 1;
 		else
 			y[j] = -1;
+
+		// assume initial w is 0
+		exp_wTx[j] = 1;
+		tau[j] = C[GETI(j)]*0.5;
+		D[j] = C[GETI(j)]*0.25;
 	}
 	for(j=0; j<w_size; j++)
 	{
 		w[j] = 0;
+		wpd[j] = w[j];
 		index[j] = j;
-		xj_max[j] = 0;
-		C_sum[j] = 0;
 		xjneg_sum[j] = 0;
-		xjpos_sum[j] = 0;
 		x = prob_col->x[j];
 		while(x->index != -1)
 		{
 			int ind = x->index-1;
-			double val = x->value;
-			x_min = min(x_min, val);
-			xj_max[j] = max(xj_max[j], val);
-			C_sum[j] += C[GETI(ind)];
 			if(y[ind] == -1)
-				xjneg_sum[j] += C[GETI(ind)]*val;
-			else
-				xjpos_sum[j] += C[GETI(ind)]*val;
+				xjneg_sum[j] += C[GETI(ind)]*x->value;
 			x++;
 		}
 	}
 
-	while(iter < max_iter)
+	while(newton_iter < max_newton_iter)
 	{
 		Gmax_new = 0;
-
-		for(j=0; j<active_size; j++)
-		{
-			int i = j+rand()%(active_size-j);
-			swap(index[i], index[j]);
-		}
+		Gnorm1_new = 0;
+		active_size = w_size;
 
 		for(s=0; s<active_size; s++)
 		{
 			j = index[s];
-			sum1 = 0;
-			sum2 = 0;
-			H = 0;
+			Hdiag[j] = nu;
+			Grad[j] = 0;
 
+			double tmp = 0;
 			x = prob_col->x[j];
 			while(x->index != -1)
 			{
 				int ind = x->index-1;
-				double exp_wTxind = exp_wTx[ind];
-				double tmp1 = x->value/(1+exp_wTxind);
-				double tmp2 = C[GETI(ind)]*tmp1;
-				double tmp3 = tmp2*exp_wTxind;
-				sum2 += tmp2;
-				sum1 += tmp3;
-				H += tmp1*tmp3;
+				Hdiag[j] += x->value*x->value*D[ind];
+				tmp += x->value*tau[ind];
 				x++;
 			}
+			Grad[j] = -tmp + xjneg_sum[j];
 
-			G = -sum2 + xjneg_sum[j];
-
-			double Gp = G+1;
-			double Gn = G-1;
+			double Gp = Grad[j]+1;
+			double Gn = Grad[j]-1;
 			double violation = 0;
 			if(w[j] == 0)
 			{
@@ -1460,6 +1458,7 @@ static void solve_l1r_lr(
 					violation = -Gp;
 				else if(Gn > 0)
 					violation = Gn;
+				//outer-level shrinking
 				else if(Gp>Gmax_old/l && Gn<-Gmax_old/l)
 				{
 					active_size--;
@@ -1474,125 +1473,210 @@ static void solve_l1r_lr(
 				violation = fabs(Gn);
 
 			Gmax_new = max(Gmax_new, violation);
+			Gnorm1_new += violation;
+		}
 
-			// obtain Newton direction d
-			if(Gp <= H*w[j])
-				d = -Gp/H;
-			else if(Gn >= H*w[j])
-				d = -Gn/H;
-			else
-				d = -w[j];
+		if(newton_iter == 0)
+			Gnorm1_init = Gnorm1_new;
 
-			if(fabs(d) < 1.0e-12)
-				continue;
+		if(Gnorm1_new <= eps*Gnorm1_init)
+			break;
 
-			d = min(max(d,-10.0),10.0);
+		iter = 0;
+		QP_Gmax_old = INF;
+		QP_active_size = active_size;
 
-			double delta = fabs(w[j]+d)-fabs(w[j]) + G*d;
-			int num_linesearch;
-			for(num_linesearch=0; num_linesearch < max_num_linesearch; num_linesearch++)
+		for(int i=0; i<l; i++)
+			xTd[i] = 0;
+
+		// optimize QP over wpd
+		while(iter < max_iter)
+		{
+			QP_Gmax_new = 0;
+			QP_Gnorm1_new = 0;
+
+			for(j=0; j<QP_active_size; j++)
 			{
-				cond = fabs(w[j]+d)-fabs(w[j]) - sigma*delta;
+				int i = j+rand()%(QP_active_size-j);
+				swap(index[i], index[j]);
+			}
 
-				if(x_min >= 0)
+			for(s=0; s<QP_active_size; s++)
+			{
+				j = index[s];
+				H = Hdiag[j];
+
+				x = prob_col->x[j];
+				G = Grad[j] + (wpd[j]-w[j])*nu;
+				while(x->index != -1)
 				{
-					double tmp = exp(d*xj_max[j]);
-					appxcond1 = log(1+sum1*(tmp-1)/xj_max[j]/C_sum[j])*C_sum[j] + cond - d*xjpos_sum[j];
-					appxcond2 = log(1+sum2*(1/tmp-1)/xj_max[j]/C_sum[j])*C_sum[j] + cond + d*xjneg_sum[j];
-					if(min(appxcond1,appxcond2) <= 0)
-					{
-						x = prob_col->x[j];
-						while(x->index != -1)
-						{
-							exp_wTx[x->index-1] *= exp(d*x->value);
-							x++;
-						}
-						break;
-					}
+					int ind = x->index-1;
+					G += x->value*D[ind]*xTd[ind];
+					x++;
 				}
 
-				cond += d*xjneg_sum[j];
+				double Gp = G+1;
+				double Gn = G-1;
+				double violation = 0;
+				if(wpd[j] == 0)
+				{
+					if(Gp < 0)
+						violation = -Gp;
+					else if(Gn > 0)
+						violation = Gn;
+					//inner-level shrinking
+					else if(Gp>QP_Gmax_old/l && Gn<-QP_Gmax_old/l)
+					{
+						QP_active_size--;
+						swap(index[s], index[QP_active_size]);
+						s--;
+						continue;
+					}
+				}
+				else if(wpd[j] > 0)
+					violation = fabs(Gp);
+				else
+					violation = fabs(Gn);
 
-				int i = 0;
+				QP_Gmax_new = max(QP_Gmax_new, violation);
+				QP_Gnorm1_new += violation;
+
+				// obtain solution of one-variable problem
+				if(Gp <= H*wpd[j])
+					z = -Gp/H;
+				else if(Gn >= H*wpd[j])
+					z = -Gn/H;
+				else
+					z = -wpd[j];
+
+				if(fabs(z) < 1.0e-12)
+					continue;
+				z = min(max(z,-10.0),10.0);
+
+				wpd[j] += z;
+
 				x = prob_col->x[j];
 				while(x->index != -1)
 				{
 					int ind = x->index-1;
-					double exp_dx = exp(d*x->value);
-					exp_wTx_new[i] = exp_wTx[ind]*exp_dx;
-					cond += C[GETI(ind)]*log((1+exp_wTx_new[i])/(exp_dx+exp_wTx_new[i]));
-					x++; i++;
+					xTd[ind] += x->value*z;
+					x++;
 				}
+			}
 
-				if(cond <= 0)
-				{
-					int i = 0;
-					x = prob_col->x[j];
-					while(x->index != -1)
-					{
-						int ind = x->index-1;
-						exp_wTx[ind] = exp_wTx_new[i];
-						x++; i++;
-					}
+			iter++;
+
+			if(QP_Gnorm1_new <= inner_eps*Gnorm1_init)
+			{
+				//inner stopping
+				if(QP_active_size == active_size)
 					break;
-				}
+				//active set reactivation
 				else
 				{
-					d *= 0.5;
-					delta *= 0.5;
+					QP_active_size = active_size;
+					QP_Gmax_old = INF;
+					continue;
 				}
 			}
 
-			w[j] += d;
-
-			// recompute exp_wTx[] if line search takes too many steps
-			if(num_linesearch >= max_num_linesearch)
-			{
-				info("#");
-				for(int i=0; i<l; i++)
-					exp_wTx[i] = 0;
-
-				for(int i=0; i<w_size; i++)
-				{
-					if(w[i]==0) continue;
-					x = prob_col->x[i];
-					while(x->index != -1)
-					{
-						exp_wTx[x->index-1] += w[i]*x->value;
-						x++;
-					}
-				}
-
-				for(int i=0; i<l; i++)
-					exp_wTx[i] = exp(exp_wTx[i]);
-			}
+			QP_Gmax_old = QP_Gmax_new;
 		}
 
-		if(iter == 0)
-			Gmax_init = Gmax_new;
-		iter++;
-		if(iter % 10 == 0)
-			info(".");
+		if(iter >= max_iter)
+			info("WARNING: reaching max number of inner iterations\n");
 
-		if(Gmax_new <= eps*Gmax_init)
+		delta = 0;
+		w_norm_new = 0;
+		for(j=0; j<w_size; j++)
 		{
-			if(active_size == w_size)
+			delta += Grad[j]*(wpd[j]-w[j]);
+			if(wpd[j] != 0)
+				w_norm_new += fabs(wpd[j]);
+		}
+		delta += (w_norm_new-w_norm);
+
+		negsum_xTd = 0;
+		for(int i=0; i<l; i++)
+			if(y[i] == -1)
+				negsum_xTd += C[GETI(i)]*xTd[i];
+
+		int num_linesearch;
+		for(num_linesearch=0; num_linesearch < max_num_linesearch; num_linesearch++)
+		{
+			cond = w_norm_new - w_norm + negsum_xTd - sigma*delta;
+
+			for(int i=0; i<l; i++)
+			{
+				double exp_xTd = exp(xTd[i]);
+				exp_wTx_new[i] = exp_wTx[i]*exp_xTd;
+				cond += C[GETI(i)]*log((1+exp_wTx_new[i])/(exp_xTd+exp_wTx_new[i]));
+			}
+
+			if(cond <= 0)
+			{
+				w_norm = w_norm_new;
+				for(j=0; j<w_size; j++)
+					w[j] = wpd[j];
+				for(int i=0; i<l; i++)
+				{
+					exp_wTx[i] = exp_wTx_new[i];
+					double tau_tmp = 1/(1+exp_wTx[i]);
+					tau[i] = C[GETI(i)]*tau_tmp;
+					D[i] = C[GETI(i)]*exp_wTx[i]*tau_tmp*tau_tmp;
+				}
 				break;
+			}
 			else
 			{
-				active_size = w_size;
-				info("*");
-				Gmax_old = INF;
-				continue;
+				w_norm_new = 0;
+				for(j=0; j<w_size; j++)
+				{
+					wpd[j] = (w[j]+wpd[j])*0.5;
+					if(wpd[j] != 0)
+						w_norm_new += fabs(wpd[j]);
+				}
+				delta *= 0.5;
+				negsum_xTd *= 0.5;
+				for(int i=0; i<l; i++)
+					xTd[i] *= 0.5;
 			}
 		}
 
+		// Recompute some info due to too many line search steps
+		if(num_linesearch >= max_num_linesearch)
+		{
+			for(int i=0; i<l; i++)
+				exp_wTx[i] = 0;
+
+			for(int i=0; i<w_size; i++)
+			{
+				if(w[i]==0) continue;
+				x = prob_col->x[i];
+				while(x->index != -1)
+				{
+					exp_wTx[x->index-1] += w[i]*x->value;
+					x++;
+				}
+			}
+
+			for(int i=0; i<l; i++)
+				exp_wTx[i] = exp(exp_wTx[i]);
+		}
+
+		if(iter == 1)
+			inner_eps *= 0.25;
+
+		newton_iter++;
 		Gmax_old = Gmax_new;
+
+		info("iter %3d  #CD cycles %d\n", newton_iter, iter);
 	}
 
-	info("\noptimization finished, #iter = %d\n", iter);
-	if(iter >= max_iter)
-		info("\nWARNING: reaching max number of iterations\n");
+	info("=========================\n");
+	info("optimization finished, #iter = %d\n", newton_iter);
+	if(newton_iter >= max_newton_iter)
+		info("WARNING: reaching max number of iterations\n");
 
 	// calculate objective value
 	
@@ -1615,12 +1699,15 @@ static void solve_l1r_lr(
 
 	delete [] index;
 	delete [] y;
+	delete [] Hdiag;
+	delete [] Grad;
+	delete [] wpd;
+	delete [] xjneg_sum;
+	delete [] xTd;
 	delete [] exp_wTx;
 	delete [] exp_wTx_new;
-	delete [] xj_max;
-	delete [] C_sum;
-	delete [] xjneg_sum;
-	delete [] xjpos_sum;
+	delete [] tau;
+	delete [] D;
 }
 
 // transpose matrix X from row format to column format
@@ -1709,8 +1796,8 @@ static void group_classes(const problem *prob, int *nr_class_ret, int **label_re
 			if(nr_class == max_nr_class)
 			{
 				max_nr_class *= 2;
-				label = (int *)realloc(label,max_nr_class*sizeof(int));
-				count = (int *)realloc(count,max_nr_class*sizeof(int));
+				label = (int *)Realloc(label,max_nr_class,int);
+				count = (int *)Realloc(count,max_nr_class,int);
 			}
 			label[nr_class] = this_label;
 			count[nr_class] = 1;
@@ -1735,7 +1822,7 @@ static void group_classes(const problem *prob, int *nr_class_ret, int **label_re
 	*label_ret = label;
 	*start_ret = start;
 	*count_ret = count;
-	free(data_label);
+	Free(data_label);
 }
 
 static void train_one(const problem *prob, const parameter *param, double *w, double Cp, double Cn)
@@ -1801,7 +1888,7 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 			solve_l2r_lr_dual(prob, w, eps, Cp, Cn);
 			break;
 		default:
-			fprintf(stderr, "Error: unknown solver_type\n");
+			Rprintf("Error: unknown solver_type\n");
 			break;
 	}
 }
@@ -1849,7 +1936,7 @@ extern "C" model* train(const problem *prob, const parameter *param)
 			if(param->weight_label[i] == label[j])
 				break;
 		if(j == nr_class)
-			fprintf(stderr,"WARNING: class label %d specified in weight is not found\n", param->weight_label[i]);
+			Rprintf("WARNING: class label %d specified in weight is not found\n", param->weight_label[i]);
 		else
 			weighted_C[j] *= param->weight[i];
 	}
@@ -1916,19 +2003,19 @@ extern "C" model* train(const problem *prob, const parameter *param)
 				for(int j=0;j<w_size;j++)
 					model_->w[j*nr_class+i] = w[j];
 			}
-			free(w);
+			Free(w);
 		}
 
 	}
 
-	free(x);
-	free(label);
-	free(start);
-	free(count);
-	free(perm);
-	free(sub_prob.x);
-	free(sub_prob.y);
-	free(weighted_C);
+	Free(x);
+	Free(label);
+	Free(start);
+	Free(count);
+	Free(perm);
+	Free(sub_prob.x);
+	Free(sub_prob.y);
+	Free(weighted_C);
 	return model_;
 }
 
@@ -1978,11 +2065,11 @@ extern "C" void cross_validation(const problem *prob, const parameter *param, in
 		for(j=begin;j<end;j++)
 			target[perm[j]] = predict(submodel,prob->x[perm[j]]);
 		free_and_destroy_model(&submodel);
-		free(subprob.x);
-		free(subprob.y);
+		Free(subprob.x);
+		Free(subprob.y);
 	}
-	free(fold_start);
-	free(perm);
+	Free(fold_start);
+	Free(perm);
 }
 
 extern "C" int predict_values(const struct model *model_, const struct feature_node *x, double *dec_values)
@@ -2031,7 +2118,7 @@ extern "C" int predict(const model *model_, const feature_node *x)
 {
 	double *dec_values = Malloc(double, model_->nr_class);
 	int label=predict_values(model_, x, dec_values);
-	free(dec_values);
+	Free(dec_values);
 	return label;
 }
 
@@ -2075,148 +2162,6 @@ static const char *solver_type_table[]=
 	"L1R_L2LOSS_SVC", "L1R_LR", "L2R_LR_DUAL", NULL
 };
 
-extern "C" int save_model(const char *model_file_name, const struct model *model_)
-{
-	int i;
-	int nr_feature=model_->nr_feature;
-	int n;
-	const parameter& param = model_->param;
-
-	if(model_->bias>=0)
-		n=nr_feature+1;
-	else
-		n=nr_feature;
-	int w_size = n;
-	FILE *fp = fopen(model_file_name,"w");
-	if(fp==NULL) return -1;
-
-	int nr_w;
-	if(model_->nr_class==2 && model_->param.solver_type != MCSVM_CS)
-		nr_w=1;
-	else
-		nr_w=model_->nr_class;
-
-	fprintf(fp, "solver_type %s\n", solver_type_table[param.solver_type]);
-	fprintf(fp, "nr_class %d\n", model_->nr_class);
-	fprintf(fp, "label");
-	for(i=0; i<model_->nr_class; i++)
-		fprintf(fp, " %d", model_->label[i]);
-	fprintf(fp, "\n");
-
-	fprintf(fp, "nr_feature %d\n", nr_feature);
-
-	fprintf(fp, "bias %.16g\n", model_->bias);
-
-	fprintf(fp, "w\n");
-	for(i=0; i<w_size; i++)
-	{
-		int j;
-		for(j=0; j<nr_w; j++)
-			fprintf(fp, "%.16g ", model_->w[i*nr_w+j]);
-		fprintf(fp, "\n");
-	}
-
-	if (ferror(fp) != 0 || fclose(fp) != 0) return -1;
-	else return 0;
-}
-
-extern "C" struct model *load_model(const char *model_file_name)
-{
-	FILE *fp = fopen(model_file_name,"r");
-	if(fp==NULL) return NULL;
-
-	int i;
-	int nr_feature;
-	int n;
-	int nr_class;
-	double bias;
-	model *model_ = Malloc(model,1);
-	parameter& param = model_->param;
-
-	model_->label = NULL;
-
-	char cmd[81];
-	while(1)
-	{
-		fscanf(fp,"%80s",cmd);
-		if(strcmp(cmd,"solver_type")==0)
-		{
-			fscanf(fp,"%80s",cmd);
-			int i;
-			for(i=0;solver_type_table[i];i++)
-			{
-				if(strcmp(solver_type_table[i],cmd)==0)
-				{
-					param.solver_type=i;
-					break;
-				}
-			}
-			if(solver_type_table[i] == NULL)
-			{
-				fprintf(stderr,"unknown solver type.\n");
-				free(model_->label);
-				free(model_);
-				return NULL;
-			}
-		}
-		else if(strcmp(cmd,"nr_class")==0)
-		{
-			fscanf(fp,"%d",&nr_class);
-			model_->nr_class=nr_class;
-		}
-		else if(strcmp(cmd,"nr_feature")==0)
-		{
-			fscanf(fp,"%d",&nr_feature);
-			model_->nr_feature=nr_feature;
-		}
-		else if(strcmp(cmd,"bias")==0)
-		{
-			fscanf(fp,"%lf",&bias);
-			model_->bias=bias;
-		}
-		else if(strcmp(cmd,"w")==0)
-		{
-			break;
-		}
-		else if(strcmp(cmd,"label")==0)
-		{
-			int nr_class = model_->nr_class;
-			model_->label = Malloc(int,nr_class);
-			for(int i=0;i<nr_class;i++)
-				fscanf(fp,"%d",&model_->label[i]);
-		}
-		else
-		{
-			fprintf(stderr,"unknown text in model file: [%s]\n",cmd);
-			free(model_);
-			return NULL;
-		}
-	}
-
-	nr_feature=model_->nr_feature;
-	if(model_->bias>=0)
-		n=nr_feature+1;
-	else
-		n=nr_feature;
-	int w_size = n;
-	int nr_w;
-	if(nr_class==2 && param.solver_type != MCSVM_CS)
-		nr_w = 1;
-	else
-		nr_w = nr_class;
-
-	model_->w=Malloc(double, w_size*nr_w);
-	for(i=0; i<w_size; i++)
-	{
-		int j;
-		for(j=0; j<nr_w; j++)
-			fscanf(fp, "%lf ", &model_->w[i*nr_w+j]);
-		fscanf(fp, "\n");
-	}
-	if (ferror(fp) != 0 || fclose(fp) != 0) return NULL;
-
-	return model_;
-}
 
 extern "C" int get_nr_feature(const model *model_)
 {
@@ -2238,9 +2183,9 @@ extern "C" void get_labels(const model *model_, int* label)
 extern "C" void free_model_content(struct model *model_ptr)
 {
 	if(model_ptr->w != NULL)
-		free(model_ptr->w);
+		Free(model_ptr->w);
 	if(model_ptr->label != NULL)
-		free(model_ptr->label);
+		Free(model_ptr->label);
 }
 
 extern "C" void free_and_destroy_model(struct model **model_ptr_ptr)
@@ -2249,16 +2194,16 @@ extern "C" void free_and_destroy_model(struct model **model_ptr_ptr)
 	if(model_ptr != NULL)
 	{
 		free_model_content(model_ptr);
-		free(model_ptr);
+		Free(model_ptr);
 	}
 }
 
 extern "C" void destroy_param(parameter* param)
 {
 	if(param->weight_label != NULL)
-		free(param->weight_label);
+		Free(param->weight_label);
 	if(param->weight != NULL)
-		free(param->weight);
+		Free(param->weight);
 }
 
 extern "C" const char *check_parameter(const problem *prob, const parameter *param)

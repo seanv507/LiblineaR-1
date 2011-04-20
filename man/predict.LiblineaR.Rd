@@ -102,17 +102,17 @@ BCR=mean(c(res[1,1]/sum(res[,1]),res[2,2]/sum(res[,2]),res[3,3]/sum(res[,3])))
 print(BCR)
 
 # Plot a ROC curve for class setosa against the rest:
-library(ROCR)
-s3=scale(x,center=TRUE,scale=TRUE)
-m=LiblineaR(data=s3,labels=y,type=0,cost=co,bias=TRUE,verbose=FALSE)
-p=predict(m,s3,proba=TRUE)
-lab=as.matrix(y)
-lab[which(lab!="versicolor")]=1
-lab[which(lab=="versicolor")]=-1
-pre=prediction(predictions=p$probabilities[,"versicolor"],labels=lab)
-per=performance(pre,"tpr","fpr")
-AUC=(performance(pre,"auc"))@y.values[[1]]
-subtitle=paste("AUC:",AUC)
+\dontrun{library(ROCR)}
+\dontrun{s3=scale(x,center=TRUE,scale=TRUE)}
+\dontrun{m=LiblineaR(data=s3,labels=y,type=0,cost=co,bias=TRUE,verbose=FALSE)}
+\dontrun{p=predict(m,s3,proba=TRUE)}
+\dontrun{lab=as.matrix(y)}
+\dontrun{lab[which(lab!="versicolor")]=1}
+\dontrun{lab[which(lab=="versicolor")]=-1}
+\dontrun{pre=prediction(predictions=p$probabilities[,"versicolor"],labels=lab)}
+\dontrun{per=performance(pre,"tpr","fpr")}
+\dontrun{AUC=(performance(pre,"auc"))@y.values[[1]]}
+\dontrun{subtitle=paste("AUC:",AUC)}
 \dontrun{plot(per,main="ROC Curve: Versicolor against Setosa and Virginica",xlab="True Positive Rate",ylab="False Positive Rate",sub=subtitle)}
 
 }

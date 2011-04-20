@@ -45,7 +45,7 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
 
 	model_.label=labels;
 	
-	x = (struct feature_node *) malloc(n*sizeof(struct feature_node));
+	x = (struct feature_node *) Calloc(n,struct feature_node);
 	
 	if(*proba)
 	{
@@ -54,11 +54,11 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
 			Rprintf("Error: probability output is only supported for logistic regression.\n");
 			exit(1);
 		}
-		prob_estimates = (double *) malloc(*nbClass*sizeof(double));
+		prob_estimates = (double *) Calloc(*nbClass,double);
 	}
 	
 	if(*decisionValues)
-		decision_values = (double *) malloc(*nbClass*sizeof(double));
+		decision_values = (double *) Calloc(*nbClass,double);
 
 	// PREDICTION PROCESS	
 	for(i=0; i<*nbSamples; i++){
@@ -92,9 +92,9 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
 		}
 	}
 	if(*proba)
-		free(prob_estimates);
+		Free(prob_estimates);
 	if(*decisionValues)
-		free(decision_values);
+		Free(decision_values);
 	return;
 }
 

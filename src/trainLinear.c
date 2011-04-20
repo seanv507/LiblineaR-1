@@ -8,7 +8,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include "linear.h"
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
+//#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
+#define Malloc(type,n) (type *)Calloc(n,type)
 
 void print_null(const char *s) {}
 double do_cross_validation(void);
@@ -187,9 +188,9 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 		Rprintf("FREE SPACE\n");
 	}
 	//destroy_param(&param);
-	free(prob.y);
-	free(prob.x);
-	free(x_space);
+	Free(prob.y);
+	Free(prob.x);
+	Free(x_space);
 
 	return;
 }
@@ -209,6 +210,6 @@ double do_cross_validation(void)
 	for(i=0;i<prob.l;i++)
 		if(target[i] == prob.y[i])
 			++total_correct;
-	free(target);
+	Free(target);
 	return(1.0*total_correct/prob.l);
 }

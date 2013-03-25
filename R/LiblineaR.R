@@ -126,7 +126,7 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 			w=matrix(ncol=dim(W)[2],nrow=1,data=ret[[1]])
 		}
 		else{
-			w=matrix(ncol=dim(W)[2]/nbClass,nrow=nbClass,data=ret[[1]],byrow=TRUE)
+			w=matrix(ncol=dim(W)[2]/nbClass,nrow=nbClass,data=ret[[1]],byrow=FALSE)
 		}
 		if(!is.null(colnames(data))){
 			if(bias){

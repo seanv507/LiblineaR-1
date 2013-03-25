@@ -45,14 +45,14 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
 
 	model_.label=labels;
 	
-	x = (struct feature_node *) Calloc(n,struct feature_node);
+	x = (struct feature_node *) Calloc(n+1,struct feature_node);
 	
 	if(*proba)
 	{
 		if(!check_probability_model(&model_))
 		{
 			Rprintf("Error: probability output is only supported for logistic regression.\n");
-			exit(1);
+			return;
 		}
 		prob_estimates = (double *) Calloc(*nbClass,double);
 	}

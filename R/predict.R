@@ -63,7 +63,7 @@ predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){ #
 		"predictLinear",
 		as.double(Y),
 		as.double(t(newx)),
-		as.double(t(object$W)),
+		as.double(object$W),
 		as.integer(decisionValues),
 		as.double(t(DecisionValues)),
 		as.integer(proba),

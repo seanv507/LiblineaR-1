@@ -24,10 +24,14 @@ template <class S, class T> static inline void clone(T*& dst, S* src, int n)
 #define Malloc(type,n) (type *)Calloc(n,type)
 #define INF HUGE_VAL
 
-static void print_string_stdout(const char *s)
+/*static void print_string_stdout(const char *s)
 {
 	fputs(s,stdout);
 	fflush(stdout);
+}*/
+static void print_string_stdout(const char *s)
+{
+	Rprintf(s);
 }
 
 static void (*liblinear_print_string) (const char *) = &print_string_stdout;

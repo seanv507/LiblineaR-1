@@ -6,7 +6,10 @@
 	\code{LiblineaR} allows the estimation of predictive linear models such as L1- or L2-regularized logistic regression, L1- or L2-regularized L2-loss support vector classification, L2-regularized L1-loss support vector classification and multi-class support vector classification. The estimation of the models is particularly fast as compared to other libraries. The implementation is based on the liblinear C/C++ library for machine learning. Multiclass classification is supported. 
 }
 \usage{
-	LiblineaR(data, labels, type=0, cost=1, epsilon = 0.01, bias = TRUE, wi = NULL, cross = 0, verbose = FALSE)
+	LiblineaR(data, labels, type=0, cost=1, epsilon = 0.01,
+
+bias = TRUE, wi = NULL, cross = 0, verbose = FALSE)
+
 }
 \arguments{
   \item{data}{

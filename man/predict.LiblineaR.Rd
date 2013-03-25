@@ -113,7 +113,9 @@ print(BCR)
 \dontrun{per=performance(pre,"tpr","fpr")}
 \dontrun{AUC=(performance(pre,"auc"))@y.values[[1]]}
 \dontrun{subtitle=paste("AUC:",AUC)}
-\dontrun{plot(per,main="ROC Curve: Versicolor against Setosa and Virginica",xlab="True Positive Rate",ylab="False Positive Rate",sub=subtitle)}
+\dontrun{plot(per,main="ROC Curve: Versicolor against Setosa and Virginica",
+
+xlab="True Positive Rate",ylab="False Positive Rate",sub=subtitle)}
 
 }
 

@@ -1,3 +1,15 @@
+1.80-6: 2013/03/26
+	
+	1. Corrected a memory mapping bug in predictLinear.c
+
+1.80-5: 2013/03/25
+
+	1. Suppress printing to stdout in linear.cpp, tron.cpp
+	
+	2. Suppress the use of exit(1); in predictLinear.c
+
+	3. Correct a bug when retrieving weights from C to R for multi-class models
+ 
 1.80-4: 2011/04/21
 
 	1. Correct bugs in linear.cpp (update of solve_l1r_l2_svc and solve_l1r_lr)

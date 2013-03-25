@@ -1,3 +1,6 @@
+#include <R.h>
+#include <Rinternals.h>
+#include <R_ext/Rdynload.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,10 +28,14 @@ extern int dscal_(int *, double *, double *, int *);
 }
 #endif
 
-static void default_print(const char *buf)
+/*static void default_print(const char *buf)
 {
 	fputs(buf,stdout);
 	fflush(stdout);
+}*/
+static void default_print(const char *buf)
+{
+	Rprintf(buf);
 }
 
 void TRON::info(const char *fmt,...)

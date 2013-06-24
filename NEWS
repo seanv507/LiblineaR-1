@@ -1,3 +1,16 @@
+1.80-7: 2013/06/24
+
+	1. Modification of the following files in order to support sparse matrices:
+		R/LiblineaR.R
+		R/predict.R
+		src/predictLinear.c 
+		src/trainLinear.c
+
+		These changes are mainly to be credited to Kai-Hsiang Hsu, from the Department of Computer Science of the National Taiwan University.
+
+	2. Addition of examples to reflect the use of sparse matrices in the following file:
+		man/LiblineaR.Rd
+
 1.80-6: 2013/03/26
 	
 	1. Corrected a memory mapping bug in predictLinear.c

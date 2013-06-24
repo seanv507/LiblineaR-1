@@ -1,6 +1,6 @@
 Package: LiblineaR
 Title: Linear Predictive Models Based On The Liblinear C/C++ Library.
-Version: 1.80-6
+Version: 1.80-7
 Author: Thibault Helleputte <thelleputte@gmail.com>
 Maintainer: Thibault Helleputte <thelleputte@gmail.com>
 Description: This R package is a wrapper around the liblinear C/C++
@@ -24,10 +24,11 @@ Description: This R package is a wrapper around the liblinear C/C++
         liblinear is currently supported. For example: 1.32-14 means
         that the package supports the version 1.32 of liblinear.
 License: GPL-2
-Date: 2013-03-25
+Date: 2013-06-24
 LazyLoad: yes
+Suggests: SparseM
 URL: http://www.thibaulthelleputte.be
-Packaged: 2013-03-26 11:10:39 UTC; thibault
+Packaged: 2013-06-24 15:27:29 UTC; thibault
 NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2013-03-26 17:49:51
+Date/Publication: 2013-06-24 17:41:20

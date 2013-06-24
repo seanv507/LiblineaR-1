@@ -23,7 +23,7 @@ int nr_fold;
 double bias;
 	
 
-void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
+void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
 
 
 /**
@@ -32,7 +32,8 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
  * Author: Thibault Helleputte
  *
  */
-void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose){
+void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose){
 	
 	void (*print_func)(const char*) = NULL;	// default printing to stdout
 	const char *error_msg;
@@ -98,25 +99,49 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, do
 	// Fill data stucture
 	max_index = 0;
 	k=0;
-	for(i=0;i<prob.l;i++){
-		prob.y[i] = Y[i];
-		prob.x[i] = &x_space[k];
+    if(*sparse > 0){
+        // handle sparse matrix
+        int totalK = 0;
+        for(i=0; i<prob.l; i++){
+            prob.y[i] = Y[i];
+            prob.x[i] = &x_space[k];
 
-		for(j=1;j<*nbDim+1;j++){
-			if(X[(*nbDim*i)+(j-1)]!=0){
-				x_space[k].index = j;
-				x_space[k].value = X[(*nbDim*i)+(j-1)];
-				k++;
-				if(j>max_index){
-					max_index=j;
-				}
-			}
-		}
-		if(prob.bias >= 0)
-			x_space[k++].value = prob.bias;
-		x_space[k++].index = -1;
-	}
-	
+            int nnz = rowindex[i+1]-rowindex[i];
+            for(j=0; j<nnz; j++, k++, totalK++){
+                x_space[k].index = colindex[totalK];
+                x_space[k].value = X[totalK];
+
+                if(colindex[totalK] > max_index){
+                    max_index = colindex[totalK];
+                }
+            }
+
+            if(prob.bias >= 0)
+                x_space[k++].value = prob.bias;
+            x_space[k++].index = -1;
+        }
+    }
+    else {
+        for(i=0;i<prob.l;i++){
+            prob.y[i] = Y[i];
+            prob.x[i] = &x_space[k];
+
+            for(j=1;j<*nbDim+1;j++){
+                if(X[(*nbDim*i)+(j-1)]!=0){
+                    x_space[k].index = j;
+                    x_space[k].value = X[(*nbDim*i)+(j-1)];
+                    k++;
+                    if(j>max_index){
+                        max_index=j;
+                    }
+                }
+            }
+            if(prob.bias >= 0)
+                x_space[k++].value = prob.bias;
+            x_space[k++].index = -1;
+        }
+    }
+
 	if(prob.bias >= 0){
 		prob.n=max_index+1;
 		for(i=1;i<prob.l;i++)

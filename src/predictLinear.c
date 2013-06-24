@@ -10,7 +10,7 @@
 #include "linear.h"
 
 
-void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type);
+void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, int *sparse, int *rowindex, int *colindex, double *bias, int *labels, int *type);
 
 
 /**
@@ -19,7 +19,8 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
  * Author: Thibault Helleputte
  *
  */
-void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, int *nbClass, int *nbDim, int *nbSamples, double *bias, int *labels, int *type){
+void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, 
+        int *nbClass, int *nbDim, int *nbSamples, int *sparse, int *rowindex, int *colindex, double *bias, int *labels, int *type){
 	
 	struct feature_node *x;
 	struct parameter par;
@@ -60,13 +61,28 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
 	if(*decisionValues)
 		decision_values = (double *) Calloc(*nbClass,double);
 
+    int totalK = 0;
 	// PREDICTION PROCESS	
 	for(i=0; i<*nbSamples; i++){
-		
-		for(j=0; j<*nbDim; j++){
-			x[j].value = X[(*nbDim*i)+j];
-			x[j].index = j+1;
-		}
+        if(*sparse > 0){
+            // trying to handle the sparse matrix
+            int nnz = rowindex[i+1]-rowindex[i];
+            for(j = 0; j<nnz; j++){
+                x[j].value = X[totalK];
+                x[j].index = colindex[totalK];
+                totalK++;
+            }
+        } else {
+            int k = 0;
+            for(j=0; j<*nbDim; j++){
+                if(X[(*nbDim*i)+j]!=0){
+                    x[k].value = X[(*nbDim*i)+j];
+                    x[k].index = j+1;
+                    k++;
+                }
+            }
+            j = k;
+        }
 
 		if(model_.bias>=0){
 			x[j].index = n;

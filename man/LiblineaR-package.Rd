@@ -12,8 +12,8 @@ This R package is a wrapper around the liblinear C/C++ library for machine learn
 \tabular{ll}{
 Package: \tab LiblineaR\cr
 Type: \tab Package\cr
-Version: \tab 1.7-0\cr
-Date: \tab 2011-03-31\cr
+Version: \tab 1.80-7\cr
+Date: \tab 2013-06-24\cr
 License: \tab GPL-2\cr
 OS_type: \tab unix\cr
 }

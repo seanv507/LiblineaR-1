@@ -13,7 +13,8 @@ bias = TRUE, wi = NULL, cross = 0, verbose = FALSE)
 }
 \arguments{
   \item{data}{
-	a nxp data matrix. Each row stands for an example (sample, point) and each column stands for a dimension (feature, variable)
+	a nxp data matrix. Each row stands for an example (sample, point) and each column stands for a dimension (feature, variable).
+	A sparse matrix (from SparseM package) will also work. 
 }
   \item{labels}{
 	a response vector for classification tasks with one label for each of the n rows of \code{data}. Can be a 1xn matrix, a simple vector or a factor.
@@ -155,6 +156,29 @@ print(res)
 # Compute Balanced Classification Rate
 BCR=mean(c(res[1,1]/sum(res[,1]),res[2,2]/sum(res[,2]),res[3,3]/sum(res[,3])))
 print(BCR)
+
+# Example of the use of a sparse matrix:
+
+library(SparseM)
+
+# Sparsifying the iris dataset:
+iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
+irisSparse<-as.matrix.csr(iS)
+
+# Applying a similar methodology as above:
+
+xTrain=irisSparse[train,]
+xTest=irisSparse[-train,]
+
+# Re-train best model with best cost value.
+m=LiblineaR(data=xTrain,labels=yTrain,type=bestType,cost=bestCost,bias=TRUE,verbose=FALSE)
+
+# Make prediction
+p=predict(m,xTest,proba=pr,decisionValues=TRUE)
+
+# Display confusion matrix
+res=table(p$predictions,yTest)
+print(res)
 
 }
 

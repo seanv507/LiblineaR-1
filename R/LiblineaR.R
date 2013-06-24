@@ -1,10 +1,17 @@
 LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cross=0,verbose=FALSE){
 	# <Arg preparation>
-	
-	# Nb samples
-	n=dim(data)[1]
-	# Nb features
-	p=dim(data)[2]	
+    if(sparse <- inherits(data, "matrix.csr")){
+        # trying to handle the sparse martix case
+        library("SparseM")
+        data = SparseM::t(SparseM::t(data)) # make sure column index are sorted
+        n = data@dimension[1]
+        p = data@dimension[2]
+    } else {
+        # Nb samples
+        n=dim(data)[1]
+        # Nb features
+        p=dim(data)[2]	
+    }
 
 	# Bias
 	if(bias){
@@ -106,10 +113,15 @@ LiblineaR<-function(data,labels,type=0,cost=1,epsilon=0.01,bias=TRUE,wi=NULL,cro
 	# as.double(t(X)) corresponds to rewrite X as a nxp-long vector instead of a n-rows and p-cols matrix. Rows of X are appended one at a time.
 	ret <- .C("trainLinear",
 			as.double(W),
-			as.double(t(data)),
+			as.double(if(sparse) data@ra else t(data)),
 			as.double(yC),
 			as.integer(n),
 			as.integer(p),
+            # sparse index info
+            as.integer(sparse),
+            as.integer(if(sparse) data@ia else 0),
+            as.integer(if(sparse) data@ja else 0),
+
 			as.double(b),
 			as.integer(type),
 			as.double(cost),

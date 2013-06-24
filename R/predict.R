@@ -1,13 +1,21 @@
-predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){ # Si on met decisionValues=TRUE comme default, les exemples passent le check. Le prob vient donc de DecisonValues=matrix()
-	
+predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){
+
 	# <Arg preparation>
 	
 	error=c()
 	
-	# Nb samples
-	n=dim(newx)[1]
-	# Nb features
-	p=dim(newx)[2]
+    if(sparse <- inherits(newx, "matrix.csr")){
+        # trying to handle the sparse martix case
+        library("SparseM")
+        newx = SparseM::t(SparseM::t(newx)) # make sure column index are sorted
+        n = newx@dimension[1]
+        p = newx@dimension[2]
+    } else {
+        # Nb samples
+        n=dim(newx)[1]
+        # Nb features
+        p=dim(newx)[2]
+    }
 	
 	# Bias
 	if(object$Bias){
@@ -62,7 +70,7 @@ predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){ #
 	ret <- .C(
 		"predictLinear",
 		as.double(Y),
-		as.double(t(newx)),
+        as.double(if(sparse) newx@ra else t(newx)),
 		as.double(object$W),
 		as.integer(decisionValues),
 		as.double(t(DecisionValues)),
@@ -71,6 +79,11 @@ predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){ #
 		as.integer(object$NbClass),
 		as.integer(p),
 		as.integer(n),
+        # sparse index info
+        as.integer(sparse),
+        as.integer(if(sparse) newx@ia else 0),
+        as.integer(if(sparse) newx@ja else 0),
+
 		as.double(b),
 		as.integer(cn),
 		as.integer(object$Type)

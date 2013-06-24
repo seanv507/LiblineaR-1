@@ -14,6 +14,7 @@
 }
   \item{newx}{
 	An n x p matrix containing the new input data. A vector will be transformed to a n x 1 matrix.
+	A sparse matrix (from SparseM package) will also work. 
 }
   \item{proba}{
 	Logical indicating whether class probabilities should be computed and returned. Only possible if the model was fitted with \code{type}=0, \code{type}=6 or \code{type}=7, i.e. a Logistic Regression. Default is \code{FALSE}.

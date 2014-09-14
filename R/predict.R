@@ -86,7 +86,8 @@ predict.LiblineaR<-function(object,newx,proba=FALSE,decisionValues=FALSE,...){
 
 		as.double(b),
 		as.integer(cn),
-		as.integer(object$Type)
+		as.integer(object$Type),
+		PACKAGE="LiblineaR"
 		)
 	
 	result=list()

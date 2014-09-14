@@ -1,3 +1,31 @@
+1.80-10: 2014/09/14
+	1. Shortened examples runtime.
+	
+	2. Uniformized notations in DESCRIPTION file for LiblineaR (this package) and liblinear (the C/C++ library wrapped by this package). 
+
+1.80-9: 2014/09/12
+	1. Replaced all expressions: 
+
+		rand()%(a-b); 
+	by 
+
+		GetRNGstate();
+		(int) (unif_rand()*(a - b))%(a - b);
+		PutRNGstate();
+
+	in linear.cpp, where a and b might take different values.
+
+1.80-8: 2014/09/11
+
+	1. Corrected a bug in memory allocation for sparse matrices:
+		src/trainLinear.c
+
+		These changes are to be credited to Christian Wolf.
+
+	2. Added a PACKAGE argument to speed up call to .C(...):
+		R/LiblineaR.R
+		R/predict.R
+
 1.80-7: 2013/06/24
 
 	1. Modification of the following files in order to support sparse matrices:

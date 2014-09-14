@@ -526,7 +526,10 @@ void Solver_MCSVM_CS::Solve(double *w)
 		double stopping = -INF;
 		for(i=0;i<active_size;i++)
 		{
-			int j = i+rand()%(active_size-i);
+			GetRNGstate();
+			int j = i+ (int) (unif_rand()*(active_size - i))%(active_size - i);
+			PutRNGstate();
+
 			swap(index[i], index[j]);
 		}
 		for(s=0;s<active_size;s++)
@@ -778,7 +781,9 @@ static void solve_l2r_l1l2_svc(
 
 		for (i=0; i<active_size; i++)
 		{
-			int j = i+rand()%(active_size-i);
+			GetRNGstate();
+			int j = i+(int)(unif_rand()*(active_size - i))%(active_size - i);;
+			PutRNGstate();
 			swap(index[i], index[j]);
 		}
 
@@ -961,7 +966,9 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 	{
 		for (i=0; i<l; i++)
 		{
-			int j = i+rand()%(l-i);
+			GetRNGstate();
+			int j = i+(int)(unif_rand()*(l - i))%(l - i);;
+			PutRNGstate();
 			swap(index[i], index[j]);
 		}
 		int newton_iter = 0;
@@ -1138,7 +1145,9 @@ static void solve_l1r_l2_svc(
 
 		for(j=0; j<active_size; j++)
 		{
-			int i = j+rand()%(active_size-j);
+			GetRNGstate();
+			int i = j+(int)(unif_rand()*(active_size - j))%(active_size - j);;
+			PutRNGstate();
 			swap(index[i], index[j]);
 		}
 
@@ -1501,7 +1510,9 @@ static void solve_l1r_lr(
 
 			for(j=0; j<QP_active_size; j++)
 			{
-				int i = j+rand()%(QP_active_size-j);
+				GetRNGstate();
+				int i = j+(int)(unif_rand()*(QP_active_size - j))%(QP_active_size - j);
+				PutRNGstate();
 				swap(index[i], index[j]);
 			}
 
@@ -2033,7 +2044,9 @@ extern "C" void cross_validation(const problem *prob, const parameter *param, in
 	for(i=0;i<l;i++) perm[i]=i;
 	for(i=0;i<l;i++)
 	{
-		int j = i+rand()%(l-i);
+		GetRNGstate();
+		int j = i+(int)(unif_rand()*(l - i))%(l - i);;
+		PutRNGstate();
 		swap(perm[i],perm[j]);
 	}
 	for(i=0;i<=nr_fold;i++)

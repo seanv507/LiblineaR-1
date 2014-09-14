@@ -116,14 +116,14 @@ t=0
 
 # Find the best model with the best cost parameter via 10-fold cross-validations
 tryTypes=c(0:7)
-tryCosts=c(1000,100,10,1,0.1,0.01,0.001)
+tryCosts=c(1000,1,0.001)
 bestCost=NA
 bestAcc=0
 bestType=NA
 
 for(ty in tryTypes){
 for(co in tryCosts){
-	acc=LiblineaR(data=s,labels=yTrain,type=ty,cost=co,bias=TRUE,cross=10,verbose=FALSE)
+	acc=LiblineaR(data=s,labels=yTrain,type=ty,cost=co,bias=TRUE,cross=5,verbose=FALSE)
 	cat("Results for C=",co," : ",acc," accuracy.\n",sep="")
 	if(acc>bestAcc){
 		bestCost=co

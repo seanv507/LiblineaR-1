@@ -88,10 +88,20 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, in
 	prob.y = Malloc(int,prob.l);
 	prob.x = Malloc(struct feature_node *,prob.l);
 	
+	
+	int allocSize = (*nbDim)*prob.l+prob.l;
+	if (*sparse > 0){
+		allocSize = rowindex[prob.l] + prob.l;
+		if (*verbose)
+			Rprintf("%d\n",allocSize);
+	}
+	
 	if(prob.bias >= 0)
-		x_space = Malloc(struct feature_node,(*nbDim+1)*(*nbSamples)+prob.l);
-	else
-		x_space = Malloc(struct feature_node,(*nbDim)*(*nbSamples)+prob.l);
+		allocSize += prob.l;
+		
+	 x_space = Malloc(struct feature_node,allocSize);
+	
+	
 	
 	if(*verbose){
 		Rprintf("FILL DATA STRUCTURE\n");
@@ -216,6 +226,9 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, in
 	Free(prob.y);
 	Free(prob.x);
 	Free(x_space);
+	if(*verbose){
+		Rprintf("FREED SPACE\n");
+	}
 
 	return;
 }

@@ -75,10 +75,10 @@ s=scale(xTrain,center=TRUE,scale=TRUE)
 t=0
 
 # Tune the cost parameter of a logistic regression via a 10-fold cross-validation
-try=c(1000,100,10,1,0.1,0.01,0.001)
+try=c(1000,1,0.001)
 res=c()
 for(co in try){
-	acc=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,cross=10,verbose=FALSE)
+	acc=LiblineaR(data=s,labels=yTrain,type=t,cost=co,bias=TRUE,cross=5,verbose=FALSE)
 	res=c(res,acc)
 	cat("Results for C=",co," : ",acc," accuracy.\n",sep="")
 }

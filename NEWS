@@ -1,7 +1,33 @@
+Note: In this file, LiblineaR refers to this R package, while LIBLINEAR refers to the original C/C++ library.
+
+1.94-2: 2015/01/30
+	1. Cleaned DESCRIPTION
+
+	2. library(SparseM) replaced by 'require' or 'requireNamespace' as appropriate.
+
+1.94-1: 2015/01/30
+	1. Upgraded to LIBLINEAR version 1.94, including support vector *regression*
+		- argument labels of function LiblineaR was renamed as target. The old naming is still accepted with a warning
+		- argument type of function LiblineaR may take extra values (11,12,13)
+		- extra argument svr_eps of function LiblineaR for the tolerance of regression loss
+		- if class labels are -1 and 1, ensure that positive decision values represent the class 1
+		- enriched examples, with cases of regression
+
+	2. Fix CITATION file format to satisfy CRAN requirements
+
+	3. Cleaning and reformatting of man pages
+
+	4. Fixing a bug in class labels ordering 
+	
+1.80-11: 2014/09/18
+	1. Refactored C code in order to facilitate upgrades of LIBLINEAR.
+	
+	2. Fix memory leak in predictLinear (the buffer x wasn't freed)
+	
 1.80-10: 2014/09/14
 	1. Shortened examples runtime.
 	
-	2. Uniformized notations in DESCRIPTION file for LiblineaR (this package) and liblinear (the C/C++ library wrapped by this package). 
+	2. Uniformized notations in DESCRIPTION file for LiblineaR (this package) and LIBLINEAR (the C/C++ library wrapped by this package). 
 
 1.80-9: 2014/09/12
 	1. Replaced all expressions: 

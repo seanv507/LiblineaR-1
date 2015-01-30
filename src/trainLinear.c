@@ -8,11 +8,15 @@
 #include <ctype.h>
 #include <errno.h>
 #include "linear.h"
+
 //#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define Malloc(type,n) (type *)Calloc(n,type)
 
 void print_null(const char *s) {}
-double do_cross_validation(void);
+
+void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
+void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, double *bi, int *verbose);
+double do_cross_validation();
 
 struct feature_node *x_space;
 struct parameter param;
@@ -20,10 +24,6 @@ struct problem prob;
 struct model* model_;
 int flag_cross_validation;
 int nr_fold;
-double bias;
-	
-
-void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
 
 
 /**
@@ -32,75 +32,214 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, in
  * Author: Thibault Helleputte
  *
  */
-void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
-                 double *bi, int *type, double *cost, double *epsilon, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose){
-	
-	void (*print_func)(const char*) = NULL;	// default printing to stdout
+void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose)
+{
 	const char *error_msg;
-	int i, j, k, max_index;
-	i=j=k=0;
-	bias = -1;
 	
+	setup_params(type, cost, epsilon, svr_eps, nrWi, Wi, WiLabels, cross, verbose);
+	setup_problem(X, Y, nbSamples, nbDim, sparse, rowindex, colindex, bi, verbose);
+
+	if(*verbose)
+		Rprintf("SETUP CHECK\n");
+	
+	error_msg = check_parameter(&prob,&param);
+	
+	if(error_msg){
+		Rprintf("ERROR: %s\n",error_msg);
+		return;
+	}
+	
+	if(flag_cross_validation)
+	{
+		if(*verbose)
+			Rprintf("CROSS VAL\n");
+		
+		W_ret[0] = do_cross_validation();
+	}
+	else
+	{
+		if(*verbose)
+			Rprintf("TRAIN\n");
+		
+		model_=train(&prob, &param);
+		copy_model(W_ret, labels_ret, model_);
+		free_and_destroy_model(&model_);
+	}
+	if(*verbose)
+		Rprintf("FREE SPACE\n");
+	
+	//No need to destroy param because its members are shallow copies of Wi and WiLabels
+	//destroy_param(&param);
+	Free(prob.y);
+	Free(prob.x);
+	Free(x_space);
+	
+	if(*verbose)
+		Rprintf("FREED SPACE\n");
+	
+
+	return;
+}
+
+/**
+ * Function: do_cross_validation
+ *
+ * Author: Thibault Helleputte
+ *
+ */
+double do_cross_validation()
+{
+	int i;
+	int total_correct = 0;
+	double total_error = 0;
+	double sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
+	double *target = Malloc(double, prob.l);
+	double res;
+	
+	cross_validation(&prob,&param,nr_fold,target);
+	if(param.solver_type == L2R_L2LOSS_SVR ||
+	   param.solver_type == L2R_L1LOSS_SVR_DUAL ||
+	   param.solver_type == L2R_L2LOSS_SVR_DUAL)
+	{
+		for(i=0;i<prob.l;i++)
+		{
+			double y = prob.y[i];
+			double v = target[i];
+			total_error += (v-y)*(v-y);
+			sumv += v;
+			sumy += y;
+			sumvv += v*v;
+			sumyy += y*y;
+			sumvy += v*y;
+		}
+		res=total_error/prob.l;
+		//squared_correlation_coefficient = 
+		//		((prob.l*sumvy-sumv*sumy)*(prob.l*sumvy-sumv*sumy))/
+		//		((prob.l*sumvv-sumv*sumv)*(prob.l*sumyy-sumy*sumy))
+	}
+	else
+	{
+		for(i=0;i<prob.l;i++)
+			if(target[i] == prob.y[i])
+				++total_correct;
+		res = 1.0*total_correct/prob.l;
+	}
+	
+	Free(target);
+	return(res);
+}
+
+/**
+ * Function: setup_params
+ *     Replaces parse_command_line from train.c
+ * Author: Pierre Gramme
+ *
+ */
+void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose)
+{
 	if(*verbose){
 		Rprintf("ARGUMENTS SETUP\n");
 	}
+
+	void (*print_func)(const char*) = NULL;	// default printing to stdout
+
 	// ARGUMENTS SETUP
 	param.solver_type = *type;
 	param.C = *cost;
-	// Verbose or not?
-	if(!*verbose){
-//		liblinear_print_string = &print_null;
-		print_func = &print_null;
-	}
-	set_print_string_function(print_func);
-	if(*epsilon <= 0){
-		if(param.solver_type == L2R_LR || param.solver_type == L2R_L2LOSS_SVC)
-			param.eps = 0.01;
-		else if(param.solver_type == L2R_L2LOSS_SVC_DUAL || param.solver_type == L2R_L1LOSS_SVC_DUAL || param.solver_type == MCSVM_CS || param.solver_type == L2R_LR_DUAL)
-			param.eps = 0.1;
-		else if(param.solver_type == L1R_L2LOSS_SVC || param.solver_type == L1R_LR)
-			param.eps = 0.01;
-	}
-	else
-		param.eps=*epsilon;
-		
+	param.p = *svr_eps;
+	param.eps = *epsilon;
+	//Note: bias will be set in setup_problem(...)
 	param.nr_weight = *nrWi;
+	//TODO: deep copy might be safer than pointer copy
 	param.weight_label = WiLabels;
 	param.weight = Wi;
 	
-	if(*cross>0){
+	if(*cross>0)
+	{
 		flag_cross_validation = 1; 
 		nr_fold = *cross;
 	}
-	else{
+	else
+	{
 		flag_cross_validation = 0; 
 		nr_fold = 0;
 	}
+
+	// Verbose or not?
+	if(!*verbose){
+		// liblinear_print_string = &print_null;
+		print_func = &print_null;
+	}
+	
+	set_print_string_function(print_func);
+	
+	// NA value for eps is coded as <=0 instead of INF in original code
+	//TODO in 1.94: update
+	if(param.eps <= 0)
+	{
+		switch(param.solver_type)
+		{
+			case L2R_LR:
+			case L2R_L2LOSS_SVC:
+				param.eps = 0.01;
+				break;
+			case L2R_L2LOSS_SVR:
+				param.eps = 0.001;
+				break;
+			case L2R_L2LOSS_SVC_DUAL:
+			case L2R_L1LOSS_SVC_DUAL:
+			case MCSVM_CS:
+			case L2R_LR_DUAL:
+				param.eps = 0.1;
+				break;
+			case L1R_L2LOSS_SVC:
+			case L1R_LR:
+				param.eps = 0.01;
+				break;
+			case L2R_L1LOSS_SVR_DUAL:
+			case L2R_L2LOSS_SVR_DUAL:
+				param.eps = 0.1;
+				break;
+		}
+	}
+}
+
+
+/**
+ * Function: setup_problem
+ *     Replaces read_problem from train.c
+ * Author: Pierre Gramme
+ *
+ */
+void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *verbose)
+{
+	int i, j, k, max_index;
+	i=j=k=0;
 	
 	if(*verbose){
 		Rprintf("PROBLEM SETUP\n");
 	}
+	
 	// PROBLEM SETUP
 	prob.l = *nbSamples;
-	bias = *bi;
 	prob.bias = *bi;
 	
-	prob.y = Malloc(int,prob.l);
+	prob.y = Malloc(double,prob.l);
 	prob.x = Malloc(struct feature_node *,prob.l);
-	
 	
 	int allocSize = (*nbDim)*prob.l+prob.l;
 	if (*sparse > 0){
 		allocSize = rowindex[prob.l] + prob.l;
 		if (*verbose)
-			Rprintf("%d\n",allocSize);
+			Rprintf("allocSize: %d\n",allocSize);
 	}
 	
 	if(prob.bias >= 0)
 		allocSize += prob.l;
 		
 	 x_space = Malloc(struct feature_node,allocSize);
-	
 	
 	
 	if(*verbose){
@@ -152,102 +291,13 @@ void trainLinear(double *W, double *X, double *Y, int *nbSamples, int *nbDim, in
         }
     }
 
-	if(prob.bias >= 0){
+	if(prob.bias >= 0)
+	{
 		prob.n=max_index+1;
 		for(i=1;i<prob.l;i++)
-			(prob.x[i]-2)->index = prob.n; 
+			(prob.x[i]-2)->index = prob.n;
 		x_space[k-2].index = prob.n;
 	}
 	else
 		prob.n=max_index;
-	
-	if(*verbose){
-		Rprintf("SETUP CHECK\n");
-	}
-	// SETUP CHECK
-	error_msg = NULL;
-	
-	error_msg = check_parameter(&prob,&param);
-	
-	if(error_msg){
-		Rprintf("Error: %s\n",error_msg);
-		return;
-	}
-	
-	if(flag_cross_validation){
-		if(*verbose){
-			Rprintf("CROSS VAL\n");
-		}
-		//do_cross_validation();
-		W[0]=do_cross_validation();
-	}
-	else{
-		if(*verbose){
-			Rprintf("TRAIN\n");
-		}
-		model_=train(&prob, &param);
-		if(*verbose){
-			Rprintf("COPY RESULT FOR ");
-		}
-		if(model_->nr_class==2){
-			if(*verbose){
-				Rprintf("TWO CLASSES\n");
-			}
-			for(i=0; i<*nbDim; i++){
-				W[i]=model_->w[i];
-			}
-			if(prob.bias >= 0){
-				W[*nbDim]=model_->w[i];
-			}
-		}
-		else{
-			if(*verbose){
-				Rprintf("%d CLASSES\n",model_->nr_class);
-			}
-			for(i=0;i<model_->nr_class;i++){
-				if(prob.bias >= 0){
-					for(j=0; j<*nbDim+1; j++){
-						W[(*nbDim+1)*i+j]=model_->w[(*nbDim+1)*i+j];
-					}
-				}
-				else{
-					for(j=0; j<*nbDim; j++){
-						W[*nbDim*i+j]=model_->w[*nbDim*i+j];
-					}
-				}	
-			}
-		}
-		free_and_destroy_model(&model_);
-	}
-	if(*verbose){
-		Rprintf("FREE SPACE\n");
-	}
-	//destroy_param(&param);
-	Free(prob.y);
-	Free(prob.x);
-	Free(x_space);
-	if(*verbose){
-		Rprintf("FREED SPACE\n");
-	}
-
-	return;
-}
-
-/**
- * Function: do_cross_validation
- *
- * Author: Thibault Helleputte
- *
- */
-double do_cross_validation(void)
-{
-	int i;
-	int total_correct = 0;
-	int *target = Malloc(int, prob.l);
-	cross_validation(&prob,&param,nr_fold,target);
-	for(i=0;i<prob.l;i++)
-		if(target[i] == prob.y[i])
-			++total_correct;
-	Free(target);
-	return(1.0*total_correct/prob.l);
 }

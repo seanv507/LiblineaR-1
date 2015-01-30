@@ -28,11 +28,6 @@ extern int dscal_(int *, double *, double *, int *);
 }
 #endif
 
-/*static void default_print(const char *buf)
-{
-	fputs(buf,stdout);
-	fflush(stdout);
-}*/
 static void default_print(const char *buf)
 {
 	Rprintf(buf);
@@ -142,18 +137,18 @@ void TRON::tron(double *w)
 		}
 		if (f < -1.0e+32)
 		{
-			info("warning: f < -1.0e+32\n");
+			info("WARNING: f < -1.0e+32\n");
 			break;
 		}
 		if (fabs(actred) <= 0 && prered <= 0)
 		{
-			info("warning: actred and prered <= 0\n");
+			info("WARNING: actred and prered <= 0\n");
 			break;
 		}
 		if (fabs(actred) <= 1.0e-12*fabs(f) &&
 		    fabs(prered) <= 1.0e-12*fabs(f))
 		{
-			info("warning: actred and prered too small\n");
+			info("WARNING: actred and prered too small\n");
 			break;
 		}
 	}

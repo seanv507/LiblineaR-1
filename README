@@ -1,4 +1,21 @@
-LiblineaR is a wrapper around the LIBLINEAR C/C++ library for machine learning. LIBLINEAR is a linear classifier for data with millions of instances and features. It supports L2-regularized classifiers (such as L2-loss linear SVM, L1-loss linear SVM, and logistic regression) as well as L1-regularized classifiers (such as L2-loss linear SVM and logistic regression). The main features of LiblineaR include multi-class classification (one-vs-the rest, and Crammer & Singer method), cross validation for model selection, probability estimates (logistic regression only) or weights for unbalanced data. The estimation of the models is particularly fast as compared to other libraries. For more information on the C/C++ LIBLINEAR library itself, refer to:
+LiblineaR is a wrapper around the LIBLINEAR C/C++ library for machine learning.
+LIBLINEAR is a simple library for solving large-scale regularized linear 
+classification and regression. It currently supports 
+- L2-regularized logistic regression/L2-loss support vector classification (SVM)/
+    L1-loss support vector classification (SVM)
+- L1-regularized L2-loss support vector classification/L1-regularized logistic regression
+- L2-regularized L2-loss support vector regression/L1-loss support vector regression. 
+
+The main features of LiblineaR include multi-class classification (one-vs-the rest, and
+Crammer & Singer method), cross validation for model selection, probability
+estimates (logistic regression only) or weights for unbalanced data. The
+estimation of the models is particularly fast as compared to other libraries.
+
+The two first blocks of the package version indicates which version of LIBLINEAR is
+currently supported by LiblineaR. For example: 1.32-14 means that the package supports
+the version 1.32 of LIBLINEAR.
+
+For more information on the C/C++ LIBLINEAR library itself, refer to:
 
 R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin. 
 LIBLINEAR: A Library for Large Linear Classification, 
@@ -51,23 +68,40 @@ For L1-regularized logistic regression (-s 6), we solve
 
 min_w \sum |w_j| + C \sum log(1 + exp(-y_i w^Tx_i))
 
-where
-
-Q is a matrix with Q_ij = y_i y_j x_i^T x_j.
-
 For L2-regularized logistic regression (-s 7), we solve
 
 min_alpha  0.5(alpha^T Q alpha) + \sum alpha_i*log(alpha_i) + \sum (C-alpha_i)*log(C-alpha_i) - a constant
     s.t.   0 <= alpha_i <= C,
 
+where
+
+Q is a matrix with Q_ij = y_i y_j x_i^T x_j.
+
+For L2-regularized L2-loss SVR (-s 11), we solve
+
+min_w w^Tw/2 + C \sum max(0, |y_i-w^Tx_i|-epsilon)^2
+
+For L2-regularized L2-loss SVR dual (-s 12), we solve
+
+min_beta  0.5(beta^T (Q + lambda I/2/C) beta) - y^T beta + epsilon \sum |beta_i|
+
+For L2-regularized L1-loss SVR dual (-s 13), we solve
+
+min_beta  0.5(beta^T Q beta) - y^T beta + epsilon \sum |beta_i|
+    s.t.   -C <= beta_i <= C,
+
+where
+
+Q is a matrix with Q_ij = x_i^T x_j.
+
 If bias >= 0, w becomes [w; w_{n+1}] and x becomes [x; bias].
 
 The primal-dual relationship implies that -s 1 and -s 2 give the same
-model, and -s 0 and -s 7 give the same.
+model, -s 0 and -s 7 give the same, and -s 11 and -s 12 give the same.
 
-We implement 1-vs-the rest multi-class strategy. In training i
-vs. non_i, their C parameters are (weight from -wi)*C and C,
-respectively. If there are only two classes, we train only one
+We implement 1-vs-the rest multi-class strategy for classification. 
+In training i vs. non_i, their C parameters are (weight from -wi)*C 
+and C, respectively. If there are only two classes, we train only one
 model. Thus weight1*C vs. weight2*C is used. See examples below.
 
 We also implement multi-class SVM by Crammer and Singer (-s 4):

@@ -1,4 +1,9 @@
-Note: In this file, LiblineaR refers to this R package, while LIBLINEAR refers to the original C/C++ library.
+Note: In this file, LiblineaR refers to this R package, while 'LIBLINEAR' refers to the original C/C++ library.
+
+2.10-8 : 2017/02/13
+	1. Upgraded to 'LIBLINEAR' version 2.10, including cross-validation procedure to find parameter C.
+		- two extra arguments in the LiblineaR function.
+	2. Argument bias from LiblineaR function can now be given as a numeric, allowing to tune the value of the additional bias feature. This change is backwards-compatible with the previous use of booleans.
 
 1.94-2: 2015/01/30
 	1. Cleaned DESCRIPTION
@@ -6,7 +11,7 @@ Note: In this file, LiblineaR refers to this R package, while LIBLINEAR refers t
 	2. library(SparseM) replaced by 'require' or 'requireNamespace' as appropriate.
 
 1.94-1: 2015/01/30
-	1. Upgraded to LIBLINEAR version 1.94, including support vector *regression*
+	1. Upgraded to 'LIBLINEAR' version 1.94, including support vector *regression*
 		- argument labels of function LiblineaR was renamed as target. The old naming is still accepted with a warning
 		- argument type of function LiblineaR may take extra values (11,12,13)
 		- extra argument svr_eps of function LiblineaR for the tolerance of regression loss
@@ -20,14 +25,14 @@ Note: In this file, LiblineaR refers to this R package, while LIBLINEAR refers t
 	4. Fixing a bug in class labels ordering 
 	
 1.80-11: 2014/09/18
-	1. Refactored C code in order to facilitate upgrades of LIBLINEAR.
+	1. Refactored C code in order to facilitate upgrades of 'LIBLINEAR'.
 	
 	2. Fix memory leak in predictLinear (the buffer x wasn't freed)
 	
 1.80-10: 2014/09/14
 	1. Shortened examples runtime.
 	
-	2. Uniformized notations in DESCRIPTION file for LiblineaR (this package) and LIBLINEAR (the C/C++ library wrapped by this package). 
+	2. Uniformized notations in DESCRIPTION file for LiblineaR (this package) and 'LIBLINEAR' (the C/C++ library wrapped by this package). 
 
 1.80-9: 2014/09/12
 	1. Replaced all expressions: 
@@ -142,7 +147,7 @@ Note: In this file, LiblineaR refers to this R package, while LIBLINEAR refers t
 
 1.80-2: 2011/04/12
 
-	1. Incorporate changes from LIBLINEAR versions 1.51 to 1.80:
+	1. Incorporate changes from 'LIBLINEAR' versions 1.51 to 1.80:
 		- Use set_print_string_function to set the print function
 		- Add free_model_content and free_and_destroy_model functions (avoid memory problem if users declare a model variable)
 		- Add check_probability_model (consistent with libsvm)

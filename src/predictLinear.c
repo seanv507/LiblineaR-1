@@ -42,9 +42,7 @@ void do_predict(double *Y, double *X, int *decisionValues, double *DecisionValue
 	
 	if(*decisionValues)
 	{
-		if(model_->param.solver_type==L2R_L2LOSS_SVR ||
-		   model_->param.solver_type==L2R_L1LOSS_SVR_DUAL ||
-		   model_->param.solver_type==L2R_L2LOSS_SVR_DUAL)
+		if(check_regression_model(model_))
 		{
 			Rprintf("ERROR: decision values output is not supported for regression.\n");
 			return;
@@ -122,7 +120,7 @@ void do_predict(double *Y, double *X, int *decisionValues, double *DecisionValue
  */
 void predictLinear(double *Y, double *X, double *W, int *decisionValues, double *DecisionValues, int *proba, double *Probabilities, 
         int *nbClass, int *nbDim, int *nbSamples, int *sparse, int *rowindex, int *colindex, double *bias, int *labels, int *type){
-	//Rprintf("predictLinear\n");
+	
 	int n;
 	struct model *model_;
 	
@@ -130,19 +128,21 @@ void predictLinear(double *Y, double *X, double *W, int *decisionValues, double 
 	
 	model_ = load_model(W, nbClass, nbDim, bias, labels, type);
 	
-	//Rprintf("model.W - 0x%08x\n",model_->w);
-	//Rprintf("model.labels - 0x%08x\n",model_->label);
-	//Rprintf("predictLinear - model loaded\n");
+/*	Rprintf("model.W - 0x%08x\n",model_->w);*/
+/*	Rprintf("model.labels - 0x%08x\n",model_->label);*/
+/*	Rprintf("predictLinear - model loaded\n");*/
 	if(model_->bias>=0)
 		n=model_->nr_feature+1;
 	else
 		n=model_->nr_feature;
 	
 	x = Malloc(struct feature_node,n+1);
-	//Rprintf("x - 0x%08x\n",x);
+/*	Rprintf("x - 0x%08x\n",x);*/
+	
+	
 	do_predict(Y, X, decisionValues, DecisionValues, proba, Probabilities, 
     	nbSamples, sparse, rowindex, colindex, model_);
-	//Rprintf("predictLinear - done predict\n");
+/*	Rprintf("predictLinear - done predict\n");*/
     // Because a shallow copy was done for W and labels, no need to free them, freeing model_ is enough.
 	//free_and_destroy_model(&model_);
 	Free(model_);

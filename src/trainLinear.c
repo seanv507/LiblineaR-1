@@ -14,9 +14,10 @@
 
 void print_null(const char *s) {}
 
-void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose);
+void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC);
 void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, double *bi, int *verbose);
 double do_cross_validation();
+double do_find_parameter_C();
 
 struct feature_node *x_space;
 struct parameter param;
@@ -24,7 +25,9 @@ struct problem prob;
 struct model* model_;
 int flag_cross_validation;
 int nr_fold;
-
+int flag_find_C;
+int flag_C_specified;
+int flag_verbose;
 
 /**
  * Function: trainLinear
@@ -33,11 +36,16 @@ int nr_fold;
  *
  */
 void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
-                 double *bi, int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose)
+                 double *bi, int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC)
 {
+	if(*verbose)
+	    flag_verbose = 1;
+	else
+	    flag_verbose = 0;
+	
 	const char *error_msg;
 	
-	setup_params(type, cost, epsilon, svr_eps, nrWi, Wi, WiLabels, cross, verbose);
+	setup_params(type, cost, epsilon, svr_eps, nrWi, Wi, WiLabels, cross, verbose, findC, useInitC);
 	setup_problem(X, Y, nbSamples, nbDim, sparse, rowindex, colindex, bi, verbose);
 
 	if(*verbose)
@@ -50,7 +58,14 @@ void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSa
 		return;
 	}
 	
-	if(flag_cross_validation)
+	if (flag_find_C)
+	{
+		if(*verbose)
+			Rprintf("FIND C\n");
+		
+		W_ret[0] = do_find_parameter_C();
+	}
+	else if(flag_cross_validation)
 	{
 		if(*verbose)
 			Rprintf("CROSS VAL\n");
@@ -80,6 +95,30 @@ void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSa
 	
 
 	return;
+}
+
+double do_find_parameter_C()
+{
+	double start_C, best_C, best_rate;
+	double max_C = 1024;
+	if (flag_C_specified)
+		start_C = param.C;
+	else
+		start_C = -1.0;
+	
+	if(flag_verbose)
+		Rprintf("Doing parameter search with %d-fold cross validation.\n", nr_fold);
+	
+	find_parameter_C(&prob, &param, nr_fold, start_C, max_C, &best_C, &best_rate);
+	
+	if(flag_verbose)
+		Rprintf("Best C = %g  CV accuracy = %g%%\n", best_C, 100.0*best_rate);
+	
+	if(best_rate == 0){
+		return NA_REAL;
+	}
+	
+	return best_C;
 }
 
 /**
@@ -133,10 +172,10 @@ double do_cross_validation()
 /**
  * Function: setup_params
  *     Replaces parse_command_line from train.c
- * Author: Pierre Gramme
+ * Author: Pierre Gramme, Jerome Paul
  *
  */
-void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose)
+void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC)
 {
 	if(*verbose){
 		Rprintf("ARGUMENTS SETUP\n");
@@ -164,6 +203,25 @@ void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int
 	{
 		flag_cross_validation = 0; 
 		nr_fold = 0;
+	}
+
+	if(*useInitC){ // only for find_parameter_C
+		flag_C_specified = 1;
+	} else {
+		flag_C_specified = 0;
+	}
+	
+	if(*findC){
+		flag_find_C = 1;
+		
+		if(!flag_cross_validation)
+			nr_fold = 5;
+		
+		if(param.solver_type != L2R_LR && param.solver_type != L2R_L2LOSS_SVC){
+			error("Warm-start parameter search only available for L2R_LR and L2R_L2LOSS_SVC\n");
+		}
+	} else {
+		flag_find_C = 0;
 	}
 
 	// Verbose or not?

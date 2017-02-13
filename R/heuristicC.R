@@ -66,6 +66,7 @@
 #' print(BCR)
 #' 
 #' @keywords classif
+#' @export
 
 heuristicC<-function(data){
 	gram=data%*%t(data)

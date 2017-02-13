@@ -1,5 +1,5 @@
 ### Documentation ####
-#' Linear predictive models estimation based on the LIBLINEAR C/C++ Library.
+#' Linear predictive models estimation based on the 'LIBLINEAR' C/C++ Library.
 #' 
 #' @description
 #' \code{LiblineaR} allows the estimation of predictive linear models for 
@@ -8,12 +8,12 @@
 #' L2-regularized L1-loss support vector classification and multi-class support 
 #' vector classification. It also supports L2-regularized support vector regression 
 #' (with L1- or L2-loss). The estimation of the models is particularly fast as 
-#' compared to other libraries. The implementation is based on the LIBLINEAR C/C++ 
+#' compared to other libraries. The implementation is based on the 'LIBLINEAR' C/C++ 
 #' library for machine learning.
 #' 
 #' @details
-#' For details for the implementation of LIBLINEAR, see the README file of the
-#' original c/c++ LIBLINEAR library at
+#' For details for the implementation of 'LIBLINEAR', see the README file of the
+#' original c/c++ 'LIBLINEAR' library at
 #' \url{http://www.csie.ntu.edu.tw/~cjlin/liblinear}.
 #' 
 #' @param data 	a nxp data matrix. Each row stands for an example (sample,
@@ -59,7 +59,7 @@
 #'   this constant is provided by the \code{heuristicC} function of this
 #'   package.
 #' @param epsilon set tolerance of termination criterion for optimization.
-#'   If \code{NULL}, the LIBLINEAR defaults are used, which are:
+#'   If \code{NULL}, the 'LIBLINEAR' defaults are used, which are:
 #'   \describe{
 #'     \item{if \code{type} is 0, 2, 5 or 6}{\code{epsilon}=0.01}
 #'     \item{if \code{type} is 1, 3, 4, 7, 12 or 13}{\code{epsilon}=0.1}
@@ -87,7 +87,7 @@
 #' 			      where f is the dual function (default 0.1)}
 #' 	}
 #' @param svr_eps set tolerance margin (epsilon) in regression loss function of SVR. Not used for classification methods.
-#' @param bias if \code{bias} is \code{TRUE} (default), instances of \code{data} becomes [\code{data}; 1].
+#' @param bias if bias > 0, instance \code{data} becomes [\code{data}; \code{bias}]; if <= 0, no bias term added (default 1).
 #' @param wi a named vector of weights for the different classes, used for
 #'   asymmetric class sizes. Not all factor levels have to be supplied (default
 #'   weight: 1). All components have to be named according to the corresponding
@@ -98,6 +98,11 @@
 #'   classes are largely unbalanced. Default is 0.
 #' @param verbose if \code{TRUE}, information are printed. Default is
 #'   \code{FALSE}.
+#' @param findC if \code{findC} is \code{TRUE} runs a cross-validation of \code{cross} folds to find the best cost (C) value (works only for type 0 and 2).
+#'        Cross validation is conducted many times under parameters C = start_C, 2*start_C, 4*start_C, 8*start_C, ..., and finds the best one with the highest cross validation accuracy.
+#'        The procedure stops when the models of all folds become stable or C reaches the maximal value of 1024.
+#' @param useInitC if \code{useInitC} is \code{TRUE} (default) \code{cost} is used as the smallest start_C value of the search range (\code{findC} has to be \code{TRUE}).
+#'        If \code{useInitC} is \code{FALSE}, then the procedure calculates a small enough start_C.
 #' @param ... for backwards compatibility, parameter \code{labels} may be
 #'   provided instead of \code{target}. A warning will then be issued, or an
 #'   error if both are present. Other extra parameters are ignored.
@@ -107,14 +112,14 @@
 #' Otherwise, an object of class \code{"LiblineaR"} containing the fitted model is returned, including:
 #' \item{TypeDetail}{A string decsribing the type of model fitted, as determined by \code{type}.}
 #' \item{Type}{An integer corresponding to \code{type}.}
-#' \item{W}{A matrix with the model weights. If \code{bias} is TRUE, \code{W} contains p+1 columns, the last being the bias term. The columns are named according to the names of \code{data}, if provided, or \code{"Wx"} where \code{"x"} ranges from 1 to the number of dimensions. The bias term is named \code{"Bias"}.If the number of classes is 2, or if in regression mode rather than classification, the matrix only has one row. If the number of classes is k>2 (classification), it has k rows. Each row i corresponds then to a linear model discriminating between class i and all the other classes. If there are more than 2 classes, rows are named according to the class i which is opposed to the other classes.}
-#' \item{Bias}{TRUE or FALSE, according to the value of \code{bias}}
+#' \item{W}{A matrix with the model weights. If \code{bias} >0, \code{W} contains p+1 columns, the last being the bias term. The columns are named according to the names of \code{data}, if provided, or \code{"Wx"} where \code{"x"} ranges from 1 to the number of dimensions. The bias term is named \code{"Bias"}.If the number of classes is 2, or if in regression mode rather than classification, the matrix only has one row. If the number of classes is k>2 (classification), it has k rows. Each row i corresponds then to a linear model discriminating between class i and all the other classes. If there are more than 2 classes, rows are named according to the class i which is opposed to the other classes.}
+#' \item{Bias}{The value of \code{bias}}
 #' \item{ClassNames}{A vector containing the class names. This entry is not returned in case of regression models.}
 #' 
 #' @references
 #' 	\itemize{
 #' \item 
-#' For more information on LIBLINEAR itself, refer to:\cr
+#' For more information on 'LIBLINEAR' itself, refer to:\cr
 #' R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.\cr
 #' \emph{LIBLINEAR: A Library for Large Linear Classification,}\cr
 #' Journal of Machine Learning Research 9(2008), 1871-1874.\cr
@@ -122,7 +127,8 @@
 #' }
 #' 
 #' @author Thibault Helleputte \email{thibault.helleputte@@dnalytics.com} and\cr
-#'   Pierre Gramme \email{pierre.gramme@@dnalytics.com}.\cr 
+#'   Pierre Gramme \email{pierre.gramme@@dnalytics.com} and\cr
+#'   Jerome Paul \email{jerome.paul@@dnalytics.com}.\cr
 #'   Based on C/C++-code by Chih-Chung Chang and Chih-Jen Lin
 #' 
 #' @note Classification models usually perform better if each dimension of the data is first centered and scaled.
@@ -154,7 +160,7 @@
 #' 
 #' for(ty in tryTypes){
 #' 	for(co in tryCosts){
-#' 		acc=LiblineaR(data=s,target=yTrain,type=ty,cost=co,bias=TRUE,cross=5,verbose=FALSE)
+#' 		acc=LiblineaR(data=s,target=yTrain,type=ty,cost=co,bias=1,cross=5,verbose=FALSE)
 #' 		cat("Results for C=",co," : ",acc," accuracy.\n",sep="")
 #' 		if(acc>bestAcc){
 #' 			bestCost=co
@@ -169,7 +175,7 @@
 #' cat("Best accuracy is:",bestAcc,"\n")
 #' 
 #' # Re-train best model with best cost value.
-#' m=LiblineaR(data=s,target=yTrain,type=bestType,cost=bestCost,bias=TRUE,verbose=FALSE)
+#' m=LiblineaR(data=s,target=yTrain,type=bestType,cost=bestCost,bias=1,verbose=FALSE)
 #' 
 #' # Scale the test data
 #' s2=scale(xTest,attr(s,"scaled:center"),attr(s,"scaled:scale"))
@@ -203,7 +209,7 @@
 #'  xTest=irisSparse[-train,]
 #' 
 #'  # Re-train best model with best cost value.
-#'  m=LiblineaR(data=xTrain,target=yTrain,type=bestType,cost=bestCost,bias=TRUE,verbose=FALSE)
+#'  m=LiblineaR(data=xTrain,target=yTrain,type=bestType,cost=bestCost,bias=1,verbose=FALSE)
 #' 
 #'  # Make prediction
 #'  p=predict(m,xTest,proba=pr,decisionValues=TRUE)
@@ -245,9 +251,12 @@
 #' 
 #' 
 #' @keywords classif regression multivariate models optimize classes
+#' 
+#' @useDynLib LiblineaR trainLinear
+#' @export
 
 ### Implementation ####
-LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bias=TRUE, wi=NULL, cross=0, verbose=FALSE, ...) {
+LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, ...) {
 	# <Arg preparation>
   
   if(sparse <- inherits(data, "matrix.csr")){
@@ -279,7 +288,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	rm(cc)
 	
 	# Bias
-	b = if(bias) 1 else -1
+	b = if(bias > 0) bias else -1 # to ensure backward compatibility with boolean
 	
 	# Type 
 	typesLabels = c("L2-regularized logistic regression (primal)", "L2-regularized L2-loss support vector classification (dual)", "L2-regularized L2-loss support vector classification (primal)", "L2-regularized L1-loss support vector classification (dual)",
@@ -298,7 +307,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	
 	# Epsilon
 	if(is.null(epsilon) || epsilon<0){
-		# Will use LIBLINEAR default value for epsilon
+		# Will use 'LIBLINEAR' default value for epsilon
 		epsilon = -1
 	}
 
@@ -312,7 +321,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	
 	# Target
 	if(!is.null(dim(target))) {
-		if(identical(dim(target), c(n,1)))
+		if(identical(dim(target), c(n,1L)))
 			target = target[,1]
 		else
 			stop("Wrong dimension for target")
@@ -373,7 +382,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	# Return storage preparation
 	labels_ret = rep(0L, nbClass)
 	nr_W = if(isMulticlass) nbClass else 1
-	nc_W = if(bias) p+1 else p
+	nc_W = if(bias > 0) p+1 else p
 	W_ret=matrix(data=0, nrow=nr_W, ncol=nc_W)
 	
 	#
@@ -401,10 +410,12 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 			as.integer(WiLabels),
 			as.integer(cross),
 			as.integer(verbose),
+			as.integer(findC),
+			as.integer(useInitC),
 			PACKAGE="LiblineaR"
 			)
 	
-	if(cross==0){
+	if(cross==0 && !findC){
 		labels_ret = if(isRegression) NULL else ret[[2]]
 		
 		# classNames is a lookup table for conversion between outputs of C code and initial levels of target
@@ -418,7 +429,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 		W_ret = matrix(data=ret[[1]], nrow=nr_W, ncol=nc_W)
 		colnames(W_ret) = c(
 			if(!is.null(colnames(data))) colnames(data) else paste0("W",1:p),
-			if(bias) "Bias" else c()
+			if(bias > 0) "Bias" else c()
 		)
 		
 		if(isMulticlass)

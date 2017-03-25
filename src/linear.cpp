@@ -1806,7 +1806,7 @@ static void solve_l1r_lr(
 			y[j] = 1;
 #if USE_WEIGHTS
 			C[j] = prob_col->W[j] * Cp;			
-#else
+#endif
 		}
 		else
 		{

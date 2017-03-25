@@ -1804,16 +1804,17 @@ static void solve_l1r_lr(
 		if(prob_col->y[j] > 0)
 		{
 			y[j] = 1;
-			C[j] = Cp;
+#if USE_WEIGHTS
+			C[j] = prob_col->W[j] * Cp;			
+#else
 		}
 		else
 		{
 			y[j] = -1;
-			C[j] = Cn;
-		}
 #if USE_WEIGHTS
-		C[j] *= prob_col->W[j];
+			C[j] = prob_col->W[j] * Cn;
 #endif
+		}
 
 		exp_wTx[j] = 0;
 	}

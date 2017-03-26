@@ -256,7 +256,7 @@
 #' @export
 
 ### Implementation ####
-LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, ...) {
+LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, ...) {
 	# <Arg preparation>
   
   if(sparse <- inherits(data, "matrix.csr")){
@@ -318,7 +318,22 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 		if(isRegression)
 			warning("No value provided for svr_eps. Using default of 0.1")
 	}
-	
+
+    # sample weights
+	if (is.null(sample_weights)){
+		sample_weights <- rep(1, n)
+	}else{
+		if(!is.null(dim(sample_weights))) {
+			if(identical(dim(sample_weights), c(n,1L)))
+				sample_weights = sample_weights[,1]
+			else
+				stop("Wrong dimension for sample_weights")
+		}
+		if(length(sample_weights)!=n){
+			stop("Number of sample_weights disagrees with number of data instances.")
+		}
+	}
+
 	# Target
 	if(!is.null(dim(target))) {
 		if(identical(dim(target), c(n,1L)))
@@ -326,9 +341,11 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 		else
 			stop("Wrong dimension for target")
 	}
+
 	if(length(target)!=n){
 		stop("Number of target elements disagrees with number of data instances.")
 	}
+
 	
 	if(isRegression) {
 		yC = as.double(target)
@@ -391,6 +408,7 @@ LiblineaR<-function(data, target, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bi
 	ret <- .C("trainLinear",
 			as.double(W_ret),
 			as.integer(labels_ret),
+			as.double(sample_weights),
 			as.double(if(sparse) data@ra else t(data)),
 			as.double(yC),
 			as.integer(n),

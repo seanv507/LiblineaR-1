@@ -2607,6 +2607,12 @@ extern "C" model* train(const problem *prob, const parameter *param)
 		Free(sub_prob.x);
 		Free(sub_prob.y);
 		Free(weighted_C);
+#if USE_WEIGHTS
+		Free(sub_prob.W);
+		Free(newprob.x);
+		Free(newprob.y);
+		Free(newprob.W);
+#endif
 	}
 	return model_;
 }
@@ -2673,6 +2679,9 @@ extern "C" void cross_validation(const problem *prob, const parameter *param, in
 		free_and_destroy_model(&submodel);
 		Free(subprob.x);
 		Free(subprob.y);
+#if USE_WEIGHTS
+		Free(subprob.W);
+#endif
 	}
 	Free(fold_start);
 	Free(perm);
@@ -2805,11 +2814,21 @@ extern "C" void find_parameter_C(const problem *prob, const parameter *param, in
 		}
 		set_print_string_function(default_print_string);
 
-		int total_correct = 0;
+		double total_correct = 0;
+		double wt_n_samples = 0;
 		for(i=0; i<prob->l; i++)
+		{
+			
+#if USE_WEIGHTS
+			double W = prob->W[i];
+#else
+			double W = 1;
+#endif
+			wt_n_samples += W;
 			if(target[i] == prob->y[i])
-				++total_correct;
-		double current_rate = (double)total_correct/prob->l;
+				total_correct += W;
+		}
+		double current_rate = total_correct/wt_n_samples;
 		if(current_rate > *best_rate)
 		{
 			*best_C = param1.C;
@@ -2832,6 +2851,9 @@ extern "C" void find_parameter_C(const problem *prob, const parameter *param, in
 	{
 		Free(subprob[i].x);
 		Free(subprob[i].y);
+#if USE_WEIGHTS
+		Free(subprob[i].W);
+#endif
 		Free(prev_w[i]);
 	}
 	Free(prev_w);

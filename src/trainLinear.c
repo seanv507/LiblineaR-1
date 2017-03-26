@@ -35,8 +35,13 @@ int flag_verbose;
  * Author: Thibault Helleputte
  *
  */
+#if USE_WEIGHTS 
+void trainLinear(double *W_ret, int* labels_ret, double * W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC)
+#else
 void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
                  double *bi, int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC)
+#endif
 {
 	if(*verbose)
 	    flag_verbose = 1;
@@ -130,7 +135,8 @@ double do_find_parameter_C()
 double do_cross_validation()
 {
 	int i;
-	int total_correct = 0;
+	double total_correct = 0;
+	double wt_n_samples = 0; // because weights could be double ...
 	double total_error = 0;
 	double sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
 	double *target = Malloc(double, prob.l);
@@ -143,26 +149,42 @@ double do_cross_validation()
 	{
 		for(i=0;i<prob.l;i++)
 		{
+
 			double y = prob.y[i];
 			double v = target[i];
-			total_error += (v-y)*(v-y);
-			sumv += v;
-			sumy += y;
-			sumvv += v*v;
-			sumyy += y*y;
-			sumvy += v*y;
+#if USE_WEIGHTS
+			double W = prob.W[i];
+#else
+			double W = 1;
+#endif
+			wt_n_samples += W;
+			total_error += W * (v-y)*(v-y);
+
+			sumv += W * v;
+			sumy += W * y;
+			sumvv += W * v*v;
+			sumyy += W * y*y;
+			sumvy += W * v*y;
 		}
-		res=total_error/prob.l;
+		res=total_error/wt_n_samples;
 		//squared_correlation_coefficient = 
 		//		((prob.l*sumvy-sumv*sumy)*(prob.l*sumvy-sumv*sumy))/
 		//		((prob.l*sumvv-sumv*sumv)*(prob.l*sumyy-sumy*sumy))
 	}
 	else
 	{
-		for(i=0;i<prob.l;i++)
+		for(i=0;i<prob.l;i++){
+#if USE_WEIGHTS
+			double W = prob.W[i];
+#else
+			double W = 1;
+#endif
+			wt_n_samples += W;			
 			if(target[i] == prob.y[i])
-				++total_correct;
-		res = 1.0*total_correct/prob.l;
+				total_correct += W;
+		}
+			
+		res = total_correct/wt_n_samples;
 	}
 	
 	Free(target);
@@ -270,8 +292,13 @@ void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int
  * Author: Pierre Gramme
  *
  */
+#if USE_WEIGHTS
+void setup_problem(double *W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *verbose)
+#else
 void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
                  double *bi, int *verbose)
+#endif
 {
 	int i, j, k, max_index;
 	i=j=k=0;
@@ -286,7 +313,10 @@ void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse
 	
 	prob.y = Malloc(double,prob.l);
 	prob.x = Malloc(struct feature_node *,prob.l);
-	
+#if USE_WEIGHTS
+	prob.W = Malloc(double,prob.l);
+#endif
+
 	int allocSize = (*nbDim)*prob.l+prob.l;
 	if (*sparse > 0){
 		allocSize = rowindex[prob.l] + prob.l;
@@ -311,6 +341,9 @@ void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse
         int totalK = 0;
         for(i=0; i<prob.l; i++){
             prob.y[i] = Y[i];
+#if USE_WEIGHTS
+			prob.W[i] = W[i];
+#endif
             prob.x[i] = &x_space[k];
 
             int nnz = rowindex[i+1]-rowindex[i];
@@ -331,6 +364,9 @@ void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse
     else {
         for(i=0;i<prob.l;i++){
             prob.y[i] = Y[i];
+#if USE_WEIGHTS
+			prob.W[i] = W[i];
+#endif
             prob.x[i] = &x_space[k];
 
             for(j=1;j<*nbDim+1;j++){

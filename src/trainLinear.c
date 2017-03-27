@@ -15,7 +15,14 @@
 void print_null(const char *s) {}
 
 void setup_params(int *type, double *cost, double *epsilon, double* svr_eps, int *nrWi, double *Wi, int *WiLabels, int *cross, int *verbose, int *findC, int *useInitC);
-void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, double *bi, int *verbose);
+#if USE_WEIGHTS
+void setup_problem(double *W, double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *verbose);
+#else
+void setup_problem(double *X, double *Y, int *nbSamples, int *nbDim, int *sparse, int *rowindex, int *colindex, 
+                 double *bi, int *verbose);
+#endif
+
 double do_cross_validation();
 double do_find_parameter_C();
 
@@ -51,7 +58,11 @@ void trainLinear(double *W_ret, int* labels_ret, double *X, double *Y, int *nbSa
 	const char *error_msg;
 	
 	setup_params(type, cost, epsilon, svr_eps, nrWi, Wi, WiLabels, cross, verbose, findC, useInitC);
+#if USE_WEIGHTS	
+	setup_problem(W, X, Y, nbSamples, nbDim, sparse, rowindex, colindex, bi, verbose);
+#else
 	setup_problem(X, Y, nbSamples, nbDim, sparse, rowindex, colindex, bi, verbose);
+#endif
 
 	if(*verbose)
 		Rprintf("SETUP CHECK\n");

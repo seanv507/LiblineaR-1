@@ -24,6 +24,8 @@
 #'   correspond to class labels and can be a 1xn matrix, a simple vector or a 
 #'   factor. For regression, the values correspond to the values to predict, and
 #'   can be a 1xn matrix or a simple vector.
+#' @param sample_weights a weighting vector with one value for 
+#'   each of the n rows of \code{data}.
 #' @param type \code{LiblineaR} can produce 10 types of (generalized) linear 
 #'   models, by combining several types of loss functions and regularization 
 #'   schemes. The regularization can be L1 or L2, and the losses can be the

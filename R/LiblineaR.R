@@ -60,6 +60,9 @@
 #'   'C' constant in details below. A usually good baseline heuristics to tune
 #'   this constant is provided by the \code{heuristicC} function of this
 #'   package.
+#' @param lambda alternative norm regularisation. overides cost. uses glmnet parameterisation
+#'   between regularization and correct classification on \code{data}. 
+#'   $cost =  1/( nsamples * \lambda)$
 #' @param epsilon set tolerance of termination criterion for optimization.
 #'   If \code{NULL}, the 'LIBLINEAR' defaults are used, which are:
 #'   \describe{
@@ -258,9 +261,12 @@
 #' @export
 
 ### Implementation ####
-LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, epsilon=0.01, svr_eps=NULL, bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, ...) {
+LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda = NULL, epsilon=0.01, svr_eps=NULL, 
+                    bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, 
+                     ...) {
 	# <Arg preparation>
-  
+  # TODO standardize doesn't play well with sparse matrices
+  # bias
   if(sparse <- inherits(data, "matrix.csr")){
     if(requireNamespace("SparseM",quietly=TRUE)){
   		# trying to handle the sparse martix case
@@ -334,6 +340,10 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, epsilon
 		if(length(sample_weights)!=n){
 			stop("Number of sample_weights disagrees with number of data instances.")
 		}
+	}
+	
+	if (!is.null(lambda)){
+	  cost <- 1/lambda/sum(sample_weights)
 	}
 
 	# Target

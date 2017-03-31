@@ -342,9 +342,6 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 		}
 	}
 	
-	if (!is.null(lambda)){
-	  cost <- 1/lambda/sum(sample_weights)
-	}
 
 	# Target
 	if(!is.null(dim(target))) {
@@ -400,82 +397,94 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 		}
 	}
 	
-	# Cross-validation?
-	if(cross<0){
-		stop("Cross-validation argument 'cross' cannot be negative!")
-	}
-	else if(cross>n){
-		stop("Cross-validation argument 'cross' cannot be larger than the number of samples (",n,").",sep="")
+	  
+	if (!is.null(lambda)){
+	  cost <- 1/lambda/sum(sample_weights)
 	}
 	
+	# Cross-validation?
+	if(cross<0){
+	  stop("Cross-validation argument 'cross' cannot be negative!")
+	}
+	else if(cross>n){
+	  stop("Cross-validation argument 'cross' cannot be larger than the number of samples (",n,").",sep="")
+	}  
 	# Return storage preparation
 	labels_ret = rep(0L, nbClass)
 	nr_W = if(isMulticlass) nbClass else 1
 	nc_W = if(bias > 0) p+1 else p
 	W_ret=matrix(data=0, nrow=nr_W, ncol=nc_W)
-	
+	W_ret_list=list()
 	#
 	# </Arg preparation>
 	# as.double(t(X)) corresponds to rewrite X as a nxp-long vector instead of a n-rows and p-cols matrix. Rows of X are appended one at a time.
-	ret <- .C("trainLinear",
-			as.double(W_ret),
-			as.integer(labels_ret),
-			as.double(sample_weights),
-			as.double(if(sparse) data@ra else t(data)),
-			as.double(yC),
-			as.integer(n),
-			as.integer(p),
-			# sparse index info
-			as.integer(sparse),
-			as.integer(if(sparse) data@ia else 0),
-			as.integer(if(sparse) data@ja else 0),
+	for (i in seq(length(cost))){
 
-			as.double(b),
-			as.integer(type),
-			as.double(cost),
-			as.double(epsilon),
-			as.double(svr_eps),
-			as.integer(nrWi),
-			as.double(Wi),
-			as.integer(WiLabels),
-			as.integer(cross),
-			as.integer(verbose),
-			as.integer(findC),
-			as.integer(useInitC),
-			PACKAGE="LiblineaR"
-			)
+	  cost_x<-cost[i]
+  	ret <- .C("trainLinear",
+  			as.double(W_ret),
+  			as.integer(labels_ret),
+  			as.double(sample_weights),
+  			as.double(if(sparse) data@ra else t(data)),
+  			as.double(yC),
+  			as.integer(n),
+  			as.integer(p),
+  			# sparse index info
+  			as.integer(sparse),
+  			as.integer(if(sparse) data@ia else 0),
+  			as.integer(if(sparse) data@ja else 0),
+  
+  			as.double(b),
+  			as.integer(type),
+  			as.double(cost_x),
+  			as.double(epsilon),
+  			as.double(svr_eps),
+  			as.integer(nrWi),
+  			as.double(Wi),
+  			as.integer(WiLabels),
+  			as.integer(cross),
+  			as.integer(verbose),
+  			as.integer(findC),
+  			as.integer(useInitC),
+  			PACKAGE="LiblineaR"
+  			)
+  	if(cross==0 && !findC){
+    	labels_ret = if(isRegression) NULL else ret[[2]]
+    	# classNames is a lookup table for conversion between outputs of C code and initial levels of target
+    	classNames = {
+    	  if(isRegression) NULL 
+    	  else if(is.logical(targetLabels)) as.logical(labels_ret)
+    	  else if(is.null(levels(targetLabels))) labels_ret 
+    	  else factor(levels(targetLabels)[labels_ret], levels=levels(targetLabels))
+    	}
+    	W_ret = matrix(data=ret[[1]], nrow=nr_W, ncol=nc_W)
+    	colnames(W_ret) = c(
+    	  if(!is.null(colnames(data))) colnames(data) else paste0("W",1:p),
+    	  if(bias > 0) "Bias" else c()
+    	)
+    	
+    	if(isMulticlass)
+    	  rownames(W_ret) = classNames
+
+    	W_ret_list[[i]] <- W_ret
+  	}else{
+  	  return(ret[[1]][1])
+  	  # also break out of loop!!
+  	}
+	}
+	W_ret <- do.call(rbind,W_ret_list)
 	
-	if(cross==0 && !findC){
-		labels_ret = if(isRegression) NULL else ret[[2]]
-		
-		# classNames is a lookup table for conversion between outputs of C code and initial levels of target
-		classNames = {
-			if(isRegression) NULL 
-			else if(is.logical(targetLabels)) as.logical(labels_ret)
-			else if(is.null(levels(targetLabels))) labels_ret 
-			else factor(levels(targetLabels)[labels_ret], levels=levels(targetLabels))
-		}
-		
-		W_ret = matrix(data=ret[[1]], nrow=nr_W, ncol=nc_W)
-		colnames(W_ret) = c(
-			if(!is.null(colnames(data))) colnames(data) else paste0("W",1:p),
-			if(bias > 0) "Bias" else c()
-		)
-		
-		if(isMulticlass)
-			rownames(W_ret) = classNames
-		
-		m=list()
-		class(m)="LiblineaR"
-		m$TypeDetail=types[type+1]
-		m$Type=type
-		m$W=W_ret
-		m$Bias=bias
-		m$ClassNames=classNames
-		m$NbClass=nbClass
-		return(m)
-	}
-	else{
-		return(ret[[1]][1])
-	}
+	m=list()
+	class(m)="LiblineaR"
+	m$TypeDetail=types[type+1]
+	m$Type=type
+	if (!is.null(lambda))
+	  m$lambda=lambda
+	m$cost=cost
+	m$W=W_ret
+	m$Bias=bias
+	m$ClassNames=classNames
+	m$NbClass=nbClass
+	return(m)
+
 }

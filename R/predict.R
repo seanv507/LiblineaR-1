@@ -57,7 +57,7 @@
 #' @export
 
 ### Implementation ####
-predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...){
+predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lambda=NULL,...){
     
     # <Arg preparation>
     
@@ -142,12 +142,22 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...)
     # </Arg preparation>
     
     # as.double(t(X)) corresponds to rewrite X as a nxp-long vector instead of a n-rows and p-cols matrix. Rows of X are appended one at a time.
+    if (is.null(lambda))
+      wts_index <-seq(length(object$cost))
+    else
+      wts_index <- which(object$lambda == lambda)[[1]]
+    predictions <- list()
+    probabilities <- list()
+    decisionval <- list()
     
-    ret <- .C(
+    for (i in seq(length(wts_index))){
+      wti <- wts_index[i]
+      W=object$W[((wti-1)*object$NbClass+1):(wti*object$NbClass), ]
+      ret <- .C(
         "predictLinear",
         as.double(Y),
         as.double(if(sparse) newx@ra else t(newx)),
-        as.double(object$W),
+        as.double(W),
         as.integer(decisionValues),
         as.double(t(DecisionValues)),
         as.integer(proba),
@@ -164,22 +174,29 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE,...)
         as.integer(cn),
         as.integer(object$Type),
         PACKAGE="LiblineaR"
-    )
+      )
+      if(isRegression)
+        predictions[[i]]=ret[[1]]
+      else
+        predictions[[i]]=object$ClassNames[as.integer(ret[[1]])]
+      
+      if(proba){
+        probabilities[[i]] = matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)
+        colnames(probabilities[[i]])=object$ClassNames
+      }
+      decisionval[[i]]=matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[5]],byrow=TRUE)
+      colnames(decisionval[[i]])=object$ClassNames
+    }
+    
     
     result=list()
-    if(isRegression)
-        result$predictions=ret[[1]]
-    else
-        result$predictions=object$ClassNames[as.integer(ret[[1]])]
-    
+    result$predictions=do.call(cbind,predictions)
     if(proba){
-        result$probabilities=matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)
-        colnames(result$probabilities)=object$ClassNames
+      result$probabilities=do.call(cbind,probabilities)
     }
     
     if(decisionValues){
-        result$decisionValues=matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[5]],byrow=TRUE)
-        colnames(result$decisionValues)=object$ClassNames
+        result$decisionValues=do.call(cbind,decisionval)
     }
     
     return(result)

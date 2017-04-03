@@ -18,7 +18,7 @@
 #' 
 #' @param data 	a nxp data matrix. Each row stands for an example (sample,
 #'   point) and each column stands for a dimension (feature, variable). A sparse
-#'   matrix (from SparseM package) will also work.
+#'   matrix (from SparseM package or Matrix package - converted to SparseM::matrix.csr) will also work.
 #' @param target a response vector for prediction tasks with one value for 
 #'   each of the n rows of \code{data}. For classification, the values 
 #'   correspond to class labels and can be a 1xn matrix, a simple vector or a 
@@ -267,13 +267,15 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 	# <Arg preparation>
   # TODO standardize doesn't play well with sparse matrices
   # bias
-  if is.null(epsilon)  {
+  if (is.null(epsilon))  {
     warning("check epsilon carefully, default of 0.01 likely too big for convergence")
     epsilon = 0.01
   }
+  if (inherits(data, "Matrix"))
+    data <- as(data,"matrix.csr")
   if(sparse <- inherits(data, "matrix.csr")){
     if(requireNamespace("SparseM",quietly=TRUE)){
-  		# trying to handle the sparse martix case
+  		# trying to handle the sparse matrix case
 	  	data = SparseM::t(SparseM::t(data)) # make sure column index are sorted
 		  n = data@dimension[1]
 		  p = data@dimension[2]

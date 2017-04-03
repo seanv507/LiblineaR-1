@@ -261,12 +261,16 @@
 #' @export
 
 ### Implementation ####
-LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda = NULL, epsilon=0.01, svr_eps=NULL, 
+LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda = NULL, epsilon=NULL, svr_eps=NULL, 
                     bias=1, wi=NULL, cross=0, verbose=FALSE, findC=FALSE, useInitC=TRUE, 
                      ...) {
 	# <Arg preparation>
   # TODO standardize doesn't play well with sparse matrices
   # bias
+  if is.null(epsilon)  {
+    warning("check epsilon carefully, default of 0.01 likely too big for convergence")
+    epsilon = 0.01
+  }
   if(sparse <- inherits(data, "matrix.csr")){
     if(requireNamespace("SparseM",quietly=TRUE)){
   		# trying to handle the sparse martix case

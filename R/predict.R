@@ -152,7 +152,12 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
     
     for (i in seq(length(wts_index))){
       wti <- wts_index[i]
-      W=object$W[((wti-1)*object$NbClass+1):(wti*object$NbClass), ]
+      if (object$Type %in% c(0,6,7))
+        n_class_wt <- 1
+      else 
+        n_class_wt <- object$NbClass
+      
+      W=object$W[((wti-1)*n_class_wt+1):(wti*n_class_wt), ]
       ret <- .C(
         "predictLinear",
         as.double(Y),
@@ -181,8 +186,13 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
         predictions[[i]]=object$ClassNames[as.integer(ret[[1]])]
       
       if(proba){
-        probabilities[[i]] = matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)
-        colnames(probabilities[[i]])=object$ClassNames
+        if (n_class_wt ==1){
+          probabilities[[i]] =  matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)[,object$ClassNames==TRUE]
+        }else{
+          probabilities[[i]] =  matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)
+          colnames(probabilities[[i]])=object$ClassNames
+        }
+        
       }
       decisionval[[i]]=matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[5]],byrow=TRUE)
       colnames(decisionval[[i]])=object$ClassNames

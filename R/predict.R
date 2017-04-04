@@ -62,7 +62,8 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
     # <Arg preparation>
     
     error=c()
-    
+    if (inherits(newx, "Matrix"))
+      newx <- as(newx,"matrix.csr")
     if(sparse <- inherits(newx, "matrix.csr")){
         if(requireNamespace("SparseM",quietly=TRUE)){
             # trying to handle the sparse martix case
@@ -144,8 +145,10 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
     # as.double(t(X)) corresponds to rewrite X as a nxp-long vector instead of a n-rows and p-cols matrix. Rows of X are appended one at a time.
     if (is.null(lambda))
       wts_index <-seq(length(object$cost))
-    else
-      wts_index <- which(object$lambda == lambda)[[1]]
+    else{
+      wts_index <- match(lambda,object$lambda)
+      if (length(wts_index)!=length(lambda)) warning('not all lambdas found')
+    }
     predictions <- list()
     probabilities <- list()
     decisionval <- list()

@@ -20,7 +20,7 @@ cv.liblinear <-function (x, y, weights,  lambda = NULL,
     liblinear.call = liblinear.call[-which]
   liblinear.call[[1]] = as.name("LiblineaR")
   liblinear.object = LiblineaR(x, y, sample_weights = weights, 
-                               lambda = lambda, ...)
+                               lambda = lambda, type=type,...)
   liblinear.object$call = liblinear.call
   # TODO
   #nz = sapply(predict(liblinear.object, type = "nonzero"), 
@@ -41,7 +41,7 @@ cv.liblinear <-function (x, y, weights,  lambda = NULL,
         y_sub = y[!which, ]
       else y_sub = y[!which]
       LiblineaR(x[!which, , drop = FALSE], y_sub, sample_weights = weights[!which],
-                lambda = lambda, ...)
+                lambda = lambda, type=type,...)
     }
   }
   else {
@@ -52,14 +52,15 @@ cv.liblinear <-function (x, y, weights,  lambda = NULL,
       else y_sub = y[!which]
       
       outlist[[i]] = LiblineaR(x[!which, , drop = FALSE], 
-                               y_sub, sample_weights = weights[!which], lambda = lambda, 
-                               ...)
+                               y_sub, sample_weights = weights[!which], 
+                               lambda = lambda, type=type,...)
     }
   }
   fun = paste("cv.liblinearnet")
   lambda = liblinear.object$lambda
   cvstuff = do.call(fun, list(outlist, lambda, x, y, weights, 
                               foldid, type.measure, type, keep))
+  
   cvm = cvstuff$cvm
   cvsd = cvstuff$cvsd
   nas = is.na(cvsd)

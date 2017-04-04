@@ -36,8 +36,7 @@ cv.liblinearnet <-
   for (i in seq(nfolds)) {
     which = foldid == i
     fitobj = outlist[[i]]
-    
-    preds = predict(fitobj,x[which, , drop = FALSE], s=lambda[which_lam],  
+    preds = predict(fitobj,x[which, , drop = FALSE], lambda=lambda[which_lam],  
       proba = T)
     nlami = sum(which_lam)
     predmat[which, seq(nlami)] = preds$probabilities

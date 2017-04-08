@@ -40,11 +40,19 @@ w_vector_ll <- dfsmry_split$cnt
 y_vector_ll <- dfsmry_split$conv
 
 glm_mod <- glmnet( y= y_matrix, x= x_matrix, family = "binomial",alpha = 0, standardize=FALSE)
-z2<-predict(glm_mod,newx = x_matrix,s=glm_mod$lambda[[99]],type='response')
-ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = glm_mod$lambda, epsilon = 0.0001)
-z_ll <- predict(ll_mod,newx = x_matrix,proba=T)
-# do crossvalidation
-cvmod <- cv.glmnet( y=y_matrix , x= x_matrix, family = "binomial",alpha=0, standardize=FALSE, keep=T)
+ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.0001)
 
-cvmod_ll <- cv.liblinear(xx_matrix_ll, y=y_vector_ll, weights = w_vector_ll, lambda = cvmod$lambda, nfolds = 10,type = 0, bias =1000, epsilon = 0.0001,
+z<-predict(glm_mod,newx = x_matrix,type='response')
+z_s90<-predict(glm_mod,newx = x_matrix,type='response',s=ll_mod$lambda[90])
+#ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = glm_mod$lambda, epsilon = 0.0001)
+
+z_ll <- predict(ll_mod,newx = x_matrix,proba=T)
+z_ll_a <- predict(ll_mod,newx = x_matrix,proba=T, lambda=lambda)
+z_ll_s90 <- predict(ll_mod,newx = x_matrix,proba=T,lambda=ll_mod$lambda[90])
+
+# do crossvalidation
+lambda <-  c(344,34,0.34,0.034)
+cvmod <- cv.glmnet( y=y_matrix , x= x_matrix, lambda=lambda, family = "binomial",alpha=0, standardize=FALSE, keep=T)
+
+cvmod_ll <- cv.liblinear(x_matrix_ll, y=y_vector_ll, weights = w_vector_ll, lambda = lambda, nfolds = 10,type = 0, bias =1000, epsilon = 0.0001,
                           keep = FALSE, parallel = FALSE) 

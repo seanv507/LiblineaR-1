@@ -11,7 +11,10 @@ cv.liblinear <-function (x, y, weights,  lambda = NULL,
   N = nrow(x)
   if (missing(weights)) 
     weights = rep(1, N)
-  else weights = as.double(weights)
+  else {
+    weights = as.double(weights)
+    if (is.missing(foldid)) warning("foldid will be generated automatically, which may not take into account weights and class distribution in dataset (eg all -ve at end)")
+  }
   y = drop(y)
   liblinear.call = match.call(expand.dots = TRUE)
   which = match(c("type.measure", "nfolds", "foldid", 
@@ -27,7 +30,7 @@ cv.liblinear <-function (x, y, weights,  lambda = NULL,
   #            length)
   nz=c()
   
-  if (missing(foldid)) 
+  if (missing(foldid))
     foldid = sample(rep(seq(nfolds), length = N))
   else nfolds = max(foldid)
   if (nfolds < 3) 

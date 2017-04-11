@@ -143,9 +143,9 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
     # </Arg preparation>
     
     # as.double(t(X)) corresponds to rewrite X as a nxp-long vector instead of a n-rows and p-cols matrix. Rows of X are appended one at a time.
-    if (is.null(lambda))
+    if (is.null(lambda)){
       wts_index <-seq(length(object$cost))
-    else{
+    }else{
       wts_index <- match(lambda,object$lambda)
       if (length(wts_index)!=length(lambda)) warning('not all lambdas found')
     }

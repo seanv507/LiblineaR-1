@@ -272,6 +272,7 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
     epsilon = 0.01
   }
   if (inherits(data, "Matrix"))
+    require(SparseM)
     data <- as(data,"matrix.csr")
   if(sparse <- inherits(data, "matrix.csr")){
     if(requireNamespace("SparseM",quietly=TRUE)){

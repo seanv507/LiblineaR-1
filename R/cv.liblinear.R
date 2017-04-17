@@ -13,7 +13,7 @@ cv.liblinear <-function (x, y, weights,  lambda = NULL,
     weights = rep(1, N)
   else {
     weights = as.double(weights)
-    if (is.missing(foldid)) warning("foldid will be generated automatically, which may not take into account weights and class distribution in dataset (eg all -ve at end)")
+    if (missing(foldid)) warning("foldid will be generated automatically, which may not take into account weights and class distribution in dataset (eg all -ve at end)")
   }
   y = drop(y)
   liblinear.call = match.call(expand.dots = TRUE)

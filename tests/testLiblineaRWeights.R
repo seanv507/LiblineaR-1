@@ -44,24 +44,25 @@ y_vector_ll <- dfsmry_split$conv
 
 lambda=c(100,10,1,0.1,0.01)
 glm_mod <- glmnet( y= y_matrix, x= x_matrix, family = "binomial",alpha = 0, lambda=lambda, standardize=FALSE)
-ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.0001)
+ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
+
+x_matrix_ll_M <- sparse.model.matrix('~ .',data=x_matrix_ll)
 
 z<-predict(glm_mod,newx = x_matrix,type='response')
 z_ll <- predict(ll_mod,newx = x_matrix,proba=T)
 z_ll_a <- predict(ll_mod,newx = x_matrix,proba=T, lambda=lambda)
+cat( "test get same result if use no lambda or original lambda sequence: ",all(z_ll$probabilities==z_ll_a$probabilities))
 
 head(z)
 head(z_ll$probabilities)
 
-max(abs(z_ll$probabilities-z))
-sum(abs(z_ll$probabilities == z_ll_a$probabilities))
-
-all(z_ll$probabilities==z_ll_a$probabilities)
+cat("check diff between glmnet and liblinear probabilities is < 0.001",max(abs((z-z_ll$probabilities))))
 
 z_2<-predict(glm_mod,newx = x_matrix,s=lambda[2], type='response')
 z_ll_2 <- predict(ll_mod,newx = x_matrix,proba=T, lambda=ll_mod$lambda[2])
 
-sum(abs(z_2 - z_ll_2$probabilities))
+cat("check diff between glmnet and liblinear probabilities for single lambda is < 0.001",max(abs((z_2-z_ll_2$probabilities))))
+
 
 #ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = glm_mod$lambda, epsilon = 0.0001)
 
@@ -80,6 +81,14 @@ cvmod_ll <- cv.liblinear(x_matrix_ll, y=y_vector_ll, weights = w_vector_ll, lamb
 
 all(x_matrix==x_matrix_ll[1:15000,])
 all(x_matrix==x_matrix_ll[15001:30000,])
+x_matrix_ll_M <- sparse.model.matrix(~ . -1,data=data.frame(x_matrix_ll))
+x_matrix_ll_S <- as(x_matrix_ll_M,'matrix.csr')
+x_matrix_ll_R <- as(x_matrix_ll_M,'RsparseMatrix')
+str(x_matrix_ll_S)
+str(x_matrix_ll_R)
+all(x_matrix_ll_S@ra==x_matrix_ll_R@x)
+all(x_matrix_ll_S@ja==x_matrix_ll_R@j+1)
+all(x_matrix_ll_S@ia==x_matrix_ll_R@p+1)
 
 
 cvmod$cvm

@@ -7,7 +7,7 @@
 #' @param object Object of class \code{"LiblineaR"}, created by
 #'   \code{LiblineaR}.
 #' @param newx An n x p matrix containing the new input data. A vector will be
-#'   transformed to a n x 1 matrix. A sparse matrix (from SparseM package) will
+#'   transformed to a n x 1 matrix. A sparse matrix (from Matrix package) will
 #'   also work.
 #' @param proba Logical indicating whether class probabilities should be
 #'   computed and returned. Only possible if the model was fitted with
@@ -62,17 +62,13 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
     # <Arg preparation>
     
     error=c()
-    if (inherits(newx, "Matrix"))
-      newx <- as(newx,"matrix.csr")
-    if(sparse <- inherits(newx, "matrix.csr")){
-        if(requireNamespace("SparseM",quietly=TRUE)){
-            # trying to handle the sparse martix case
-            newx = SparseM::t(SparseM::t(newx)) # make sure column index are sorted
-            n = newx@dimension[1]
-            p = newx@dimension[2]
-        } else {
-            stop("newx inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. Use non-sparse matrix or install SparseM.")
-        }
+    
+    if(sparse <- inherits(newx, "Matrix")){
+        #TODO if(requireNamespace("SparseM",quietly=TRUE)){
+            # trying to handle the sparse matrix case
+            #newx = SparseM::t(SparseM::t(newx)) # make sure column index are sorted
+        n = newx@Dim[1]
+        p = newx@Dim[2]
     } else {
         # Nb samples
         n=dim(newx)[1]
@@ -164,7 +160,7 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
       ret <- .C(
         "predictLinear",
         as.double(Y),
-        as.double(if(sparse) newx@ra else t(newx)),
+        as.double(if(sparse) newx@x else t(newx)),
         as.double(W),
         as.integer(decisionValues),
         as.double(t(DecisionValues)),
@@ -175,8 +171,8 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
         as.integer(n),
         # sparse index info
         as.integer(sparse),
-        as.integer(if(sparse) newx@ia else 0),
-        as.integer(if(sparse) newx@ja else 0),
+        as.integer(if(sparse) newx@p+1 else 0),
+        as.integer(if(sparse) newx@j+1 else 0),
         
         as.double(b),
         as.integer(cn),

@@ -46,7 +46,12 @@ lambda=c(100,10,1,0.1,0.01)
 glm_mod <- glmnet( y= y_matrix, x= x_matrix, family = "binomial",alpha = 0, lambda=lambda, standardize=FALSE)
 ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
 
-x_matrix_ll_M <- sparse.model.matrix('~ .',data=x_matrix_ll)
+# create sparse matrix from Matrix package and test preserve column names
+x_matrix_ll_M <- sparse.model.matrix(~ . -1,data=data.frame(x_matrix_ll))
+ll_mod_M <- LiblineaR(data=x_matrix_ll_M, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
+ll_mod_M$W
+cat("testing preserve col names", all(colnames(ll_mod_M$W)[1:ncol(x_matrix_ll_M)]==colnames(x_matrix_ll_M)))
+cat("testing no diff between sparse matrix input and full",max(abs(ll_mod_M$W - ll_mod$W)))
 
 z<-predict(glm_mod,newx = x_matrix,type='response')
 z_ll <- predict(ll_mod,newx = x_matrix,proba=T)
@@ -81,18 +86,23 @@ cvmod_ll <- cv.liblinear(x_matrix_ll, y=y_vector_ll, weights = w_vector_ll, lamb
 
 all(x_matrix==x_matrix_ll[1:15000,])
 all(x_matrix==x_matrix_ll[15001:30000,])
-x_matrix_ll_M <- sparse.model.matrix(~ . -1,data=data.frame(x_matrix_ll))
-x_matrix_ll_S <- as(x_matrix_ll_M,'matrix.csr')
+
+#x_matrix_ll_S <- as(x_matrix_ll_M,'matrix.csr')
 x_matrix_ll_R <- as(x_matrix_ll_M,'RsparseMatrix')
-str(x_matrix_ll_S)
+#str(x_matrix_ll_S)
 str(x_matrix_ll_R)
-all(x_matrix_ll_S@ra==x_matrix_ll_R@x)
-all(x_matrix_ll_S@ja==x_matrix_ll_R@j+1)
-all(x_matrix_ll_S@ia==x_matrix_ll_R@p+1)
+#all(x_matrix_ll_S@ra==x_matrix_ll_R@x)
+#all(x_matrix_ll_S@ja==x_matrix_ll_R@j+1)
+#all(x_matrix_ll_S@ia==x_matrix_ll_R@p+1)
 
 
 cvmod$cvm
 cvmod_w$cvm
 cvmod_ll$cvm
 
-print("There is a constant error between ")
+
+
+print("There is a constant offset between deviance metric using counts and 1/0- known effect")
+cvmod$cvm-cvmod$cvm[1]
+cvmod_w$cvm-cvmod_w$cvm[1]
+cvmod_ll$cvm-cvmod_ll$cvm[1]

@@ -18,7 +18,7 @@
 #' 
 #' @param data 	a nxp data matrix. Each row stands for an example (sample,
 #'   point) and each column stands for a dimension (feature, variable). A sparse
-#'   matrix (from SparseM package or Matrix package - converted to SparseM::matrix.csr) will also work.
+#'   matrix (from Matrix package) will also work (converted if necc to row-oriented).
 #' @param target a response vector for prediction tasks with one value for 
 #'   each of the n rows of \code{data}. For classification, the values 
 #'   correspond to class labels and can be a 1xn matrix, a simple vector or a 
@@ -203,11 +203,11 @@
 #' 
 #' # Example of the use of a sparse matrix:
 #' 
-#' if(require(SparseM)){
+#' if(require(Matrix)){
 #' 
 #'  # Sparsifying the iris dataset:
 #'  iS=apply(iris[,1:4],2,function(a){a[a<quantile(a,probs=c(0.25))]=0;return(a)})
-#'  irisSparse<-as.matrix.csr(iS)
+#'  irisSparse<-as(iS, 'RsparseMatrix)
 #' 
 #'  # Applying a similar methodology as above:
 #'  xTrain=irisSparse[train,]
@@ -271,19 +271,14 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
     warning("check epsilon carefully, default of 0.01 likely too big for convergence")
     epsilon = 0.01
   }
-  if (inherits(data, "Matrix")){
-    require(SparseM)
-    data <- as(data,"matrix.csr")
-  }
-  if(sparse <- inherits(data, "matrix.csr")){
-    if(requireNamespace("SparseM",quietly=TRUE)){
-  		# trying to handle the sparse matrix case
-	  	data = SparseM::t(SparseM::t(data)) # make sure column index are sorted
-		  n = data@dimension[1]
-		  p = data@dimension[2]
-    } else {
-      stop("newx inherits from 'matrix.csr', but 'SparseM' package is not available. Cannot proceed further. Use non-sparse matrix or install SparseM.")
-    }
+  if (sparse <- inherits(data, "Matrix")){
+    data <- as(data,"RsparseMatrix")
+  
+		# trying to handle the sparse matrix case
+    # TODO decide how to enforce this sorting (if necc) 
+  	# data = SparseM::t(SparseM::t(data)) # make sure column index are sorted
+	  n = data@Dim[1]
+	  p = data@Dim[2]
 	} else {
 		# Nb samples
 		n=dim(data)[1]
@@ -433,14 +428,14 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
   			as.double(W_ret),
   			as.integer(labels_ret),
   			as.double(sample_weights),
-  			as.double(if(sparse) data@ra else t(data)),
+  			as.double(if(sparse) data@x else t(data)),
   			as.double(yC),
   			as.integer(n),
   			as.integer(p),
   			# sparse index info
   			as.integer(sparse),
-  			as.integer(if(sparse) data@ia else 0),
-  			as.integer(if(sparse) data@ja else 0),
+  			as.integer(if(sparse) data@p+1 else 0),
+  			as.integer(if(sparse) data@j+1 else 0),
   
   			as.double(b),
   			as.integer(type),

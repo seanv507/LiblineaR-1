@@ -1,7 +1,8 @@
 require(LiblineaR)
-require(tidyr)
-require(dplyr)
 require(glmnet)
+require(Matrix)
+source('gen_logreg_test_data.R')
+
 
 # ./train -W heart_scale.wgt  heart_scale
 
@@ -9,6 +10,20 @@ require(glmnet)
 # optimization finished, #iter = 244
 # Objective value = -131.819531
 # nSV = 199
+heart <- libsvmread('heart_scale')
+heart_weight <- read.delim('heart_scale.wgt', header=F)
+heart_model <- LiblineaR(data=heart$x, target=heart$y, sample_weights=heart_weight, bias=-1, type=1, verbose = T)
+
+test_libsvmread(){
+  expect_equal(dim(x_y$x),c(270,13))
+  x_y <- libsvmread('../heart_scale')
+  expect_true(abs(mean(x_y$y) - -0.1111111)<1e-6)
+  expect_true(abs(sum(x_y$x) - -666.4009)<1e-4)
+}
+
+
+dat <- gen_logreg_test_data()
+
 logistic <- function(x)  1/(1+exp(-x))
 
 set.seed(1234)
@@ -43,16 +58,20 @@ y_vector_ll <- dfsmry_split$conv
 
 
 lambda=c(100,10,1,0.1,0.01)
+
+
+
+testSparseMatrix(){
+  # create sparse matrix from Matrix package and test preserve column names
+  ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
+  x_matrix_ll_M <- sparse.model.matrix(~ . -1,data=data.frame(x_matrix_ll))
+  ll_mod_M <- LiblineaR(data=x_matrix_ll_M, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
+  ll_mod_M$W
+  cat("testing preserve col names", all(colnames(ll_mod_M$W)[1:ncol(x_matrix_ll_M)]==colnames(x_matrix_ll_M)))
+  cat("testing no diff between sparse matrix input and full",max(abs(ll_mod_M$W - ll_mod$W)))
+}
+
 glm_mod <- glmnet( y= y_matrix, x= x_matrix, family = "binomial",alpha = 0, lambda=lambda, standardize=FALSE)
-ll_mod <- LiblineaR(data=x_matrix_ll, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
-
-# create sparse matrix from Matrix package and test preserve column names
-x_matrix_ll_M <- sparse.model.matrix(~ . -1,data=data.frame(x_matrix_ll))
-ll_mod_M <- LiblineaR(data=x_matrix_ll_M, target=y_vector_ll, sample_weights = w_vector_ll, type = 0, bias =1000,lambda = lambda, epsilon = 0.00001)
-ll_mod_M$W
-cat("testing preserve col names", all(colnames(ll_mod_M$W)[1:ncol(x_matrix_ll_M)]==colnames(x_matrix_ll_M)))
-cat("testing no diff between sparse matrix input and full",max(abs(ll_mod_M$W - ll_mod$W)))
-
 z<-predict(glm_mod,newx = x_matrix,type='response')
 z_ll <- predict(ll_mod,newx = x_matrix,proba=T)
 z_ll_a <- predict(ll_mod,newx = x_matrix,proba=T, lambda=lambda)

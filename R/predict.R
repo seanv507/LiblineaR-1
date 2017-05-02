@@ -57,7 +57,7 @@
 #' @export
 
 ### Implementation ####
-predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lambda=NULL,...){
+predict.LiblineaR<-function(object, newx, type=NULL, proba=FALSE, decisionValues=FALSE, lambda=NULL,...){
     
     # <Arg preparation>
     
@@ -98,6 +98,8 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
     # Bias
     b = object$Bias
     
+    if (!is.null(type) && (type=='response') && (object$Type %in% c(0,6,7))) proba=T
+
     # Returned probabilities default storage preparation
     Probabilities=matrix(data=-1)
     
@@ -197,17 +199,21 @@ predict.LiblineaR<-function(object, newx, proba=FALSE, decisionValues=FALSE, lam
       colnames(decisionval[[i]])=object$ClassNames
     }
     
+    if (!is.null(type) && type=='response'){
+      if (proba ) result = do.call(cbind,probabilities)
+      else result=do.call(cbind,predictions)
+    }else{
+      result=list()
+      result$predictions=do.call(cbind,predictions)
+      if(proba){
+        result$probabilities=do.call(cbind,probabilities)
+      }
     
-    result=list()
-    result$predictions=do.call(cbind,predictions)
-    if(proba){
-      result$probabilities=do.call(cbind,probabilities)
-    }
-    
-    if(decisionValues){
+      if(decisionValues){
         result$decisionValues=do.call(cbind,decisionval)
+      }
+      
     }
-    
     return(result)
     
 }

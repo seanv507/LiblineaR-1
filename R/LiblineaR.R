@@ -302,10 +302,18 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 	b = if(bias > 0) bias else -1 # to ensure backward compatibility with boolean
 	
 	# Type 
-	typesLabels = c("L2-regularized logistic regression (primal)", "L2-regularized L2-loss support vector classification (dual)", "L2-regularized L2-loss support vector classification (primal)", "L2-regularized L1-loss support vector classification (dual)",
-									"support vector classification by Crammer and Singer", "L1-regularized L2-loss support vector classification", "L1-regularized logistic regression", "L2-regularized logistic regression (dual)",
+	typesLabels = c("L2-regularized logistic regression (primal)", 
+									"L2-regularized L2-loss support vector classification (dual)", 
+									"L2-regularized L2-loss support vector classification (primal)", 
+									"L2-regularized L1-loss support vector classification (dual)",
+									"support vector classification by Crammer and Singer", 
+									"L1-regularized L2-loss support vector classification", 
+									"L1-regularized logistic regression", 
+									"L2-regularized logistic regression (dual)",
 									"", "", "",
-									"L2-regularized L2-loss support vector regression (primal)", "L2-regularized L2-loss support vector regression (dual)", "L2-regularized L1-loss support vector regression (dual)")
+									"L2-regularized L2-loss support vector regression (primal)", 
+									"L2-regularized L2-loss support vector regression (dual)", 
+									"L2-regularized L1-loss support vector regression (dual)")
 	typesLabels = gsub("[()]","",typesLabels)
 	typesCodes = c("L2R_LR", "L2R_L2LOSS_SVC_DUAL", "L2R_L2LOSS_SVC", "L2R_L1LOSS_SVC_DUAL",
 								 "MCSVM_CS", "L1R_L2LOSS_SVC", "L1R_LR", "L2R_LR_DUAL",
@@ -348,15 +356,29 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 
 	# Target
 	if(!is.null(dim(target))) {
-		if(identical(dim(target), c(n,1L)))
+		if(identical(dim(target), c(n,1L))){
 			target = target[,1]
-		else
-			stop("Wrong dimension for target")
+		}else {
+				if (!isRegression & identical(dim(target), c(n,2L))){
+					sample_weights = sample_weights * target
+					sample_weights = c(sample_weights[,2], sample_weights[,1]) 
+					#concatenate columns in reverse order since liblinear takes class of first row as 'positive' class
+					# see http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f430 (and believe still the case for Liblinear vs LibSVM)
+					tnames = if (!is.null(colnames(target))) colnames(target) else c(0,1)
+					tnames = rev(tnames)
+					target = rep(tnames,c(n, n)) # creates first n 0's then n 1's
+					n = 2*n
+					data = rbind(data,data)
+					# we only support single class logistic regression
+				} else stop("Wrong dimension for target")
+		}
+	}else{
+	  if(length(target)!=n){
+	    stop("Number of target elements disagrees with number of data instances.")
+	  }
 	}
 
-	if(length(target)!=n){
-		stop("Number of target elements disagrees with number of data instances.")
-	}
+	
 
 	
 	if(isRegression) {

@@ -64,6 +64,7 @@ predict.LiblineaR<-function(object, newx, type=NULL, proba=FALSE, decisionValues
     error=c()
     
     if(sparse <- inherits(newx, "Matrix")){
+        newx <- as(newx,"RsparseMatrix")
         #TODO if(requireNamespace("SparseM",quietly=TRUE)){
             # trying to handle the sparse matrix case
             #newx = SparseM::t(SparseM::t(newx)) # make sure column index are sorted

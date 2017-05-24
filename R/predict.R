@@ -13,6 +13,10 @@
 #'   computed and returned. Only possible if the model was fitted with
 #'   \code{type}=0, \code{type}=6 or \code{type}=7, i.e. a Logistic Regression.
 #'   Default is \code{FALSE}.
+#' @param type Character 'response' return probabilities for logistic regression. Not tested for other model types.
+#'   \code{type}=0, \code{type}=6 or \code{type}=7, i.e. a Logistic Regression.
+#'   Default is \code{FALSE}.
+
 #' @param decisionValues Logical indicating whether model decision values should
 #'   be computed and returned. Only possible for classification models
 #'   (\code{type}<10). Default is \code{FALSE}.
@@ -63,7 +67,7 @@ predict.LiblineaR<-function(object, newx, type=NULL, proba=FALSE, decisionValues
     
     error=c()
     
-    if(sparse <- inherits(newx, "Matrix")){
+    if(sparse <- inherits(newx, "sparseMatrix")){
         newx <- as(newx,"RsparseMatrix")
         #TODO if(requireNamespace("SparseM",quietly=TRUE)){
             # trying to handle the sparse matrix case
@@ -189,7 +193,9 @@ predict.LiblineaR<-function(object, newx, type=NULL, proba=FALSE, decisionValues
       
       if(proba){
         if (n_class_wt ==1){
-          probabilities[[i]] =  matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)[,object$ClassNames==TRUE]
+          if(is.logical(object$ClassNames)) pred_case_col <- object$ClassNames==TRUE 
+          else pred_case_col <- 1 # we take first class presented (in Liblinear) as positive class
+          probabilities[[i]] =  matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)[,pred_case_col]
         }else{
           probabilities[[i]] =  matrix(ncol=length(object$ClassNames),nrow=n,data=ret[[7]],byrow=TRUE)
           colnames(probabilities[[i]])=object$ClassNames

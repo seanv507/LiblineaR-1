@@ -267,11 +267,12 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 	# <Arg preparation>
   # TODO standardize doesn't play well with sparse matrices
   # bias
+	ptm <- proc.time()
   if (is.null(epsilon))  {
     warning("check epsilon carefully, default of 0.01 likely too big for convergence")
     epsilon = 0.01
   }
-  if (sparse <- inherits(data, "Matrix")){
+  if (sparse <- inherits(data, "sparseMatrix")){
     data <- as(data,"RsparseMatrix")
   
 		# trying to handle the sparse matrix case
@@ -364,11 +365,13 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 					sample_weights = c(sample_weights[,2], sample_weights[,1]) 
 					#concatenate columns in reverse order since liblinear takes class of first row as 'positive' class
 					# see http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html#f430 (and believe still the case for Liblinear vs LibSVM)
-					tnames = if (!is.null(colnames(target))) colnames(target) else c(0,1)
-					tnames = rev(tnames)
-					target = rep(tnames,c(n, n)) # creates first n 0's then n 1's
+					tnames = if (!is.null(colnames(target))) rev(colnames(target)) else c(1,0)
+					target = rep(tnames,c(n, n)) # creates first n 1's then n 0's
 					n = 2*n
 					data = rbind(data,data)
+					if (sparse) data <- as(data,"RsparseMatrix")
+					# rbind doesn't preserve type of sparse matrix packageVersion('Matrix'):‘1.2.7.1’
+					
 					# we only support single class logistic regression
 				} else stop("Wrong dimension for target")
 		}
@@ -394,6 +397,8 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 			target = factor(target)
 		
 		# targetLabels are sorted by first occurrence in target ; if target is a factor, targetLabels too, with the same levels.
+		# a <- c('b','a','d','a','c') unique(a): "b" "a" "d" "c"
+		# b <- factor(a) unique(b): b a d c
 		targetLabels = unique(target)
 		nbClass = length(targetLabels)
 		
@@ -506,10 +511,13 @@ LiblineaR<-function(data, target, sample_weights = NULL, type=0, cost=1, lambda 
 	if (!is.null(lambda))
 	  m$lambda=lambda
 	m$cost=cost
+ 	m$epsilon = epsilon
+  m$svr_eps=svr_eps
 	m$W=W_ret
 	m$Bias=bias
 	m$ClassNames=classNames
 	m$NbClass=nbClass
+	m$timing=proc.time() - ptm
 	return(m)
 
 }
